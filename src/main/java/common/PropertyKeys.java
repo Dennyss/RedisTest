@@ -6,7 +6,8 @@ package common;
  * Time: 9:14 AM
  */
 public enum PropertyKeys {
-    HOST("redis.host");
+    HOST("redis.host"),
+    PORT("redis.port");
 
     private String propertyKey;
 

@@ -2,6 +2,8 @@ package dal;
 
 import common.PropertyKeys;
 import common.PropertyLoader;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.Configuration;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
@@ -60,11 +62,6 @@ public class RedisCommandsManager {
             returnResource(jedis);
         }
     }
-
-
-
-
-
 
 
     private static void returnBrokenResource(Jedis jedis){
