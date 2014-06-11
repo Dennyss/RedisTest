@@ -10,9 +10,7 @@ import org.springframework.test.context.testng.AbstractTestNGSpringContextTests;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.List;
 
 
 /**
@@ -52,5 +50,11 @@ public class RedisConnectivityTest extends AbstractTestNGSpringContextTests {
         String result = template.execute(script, Collections.<String>emptyList());
         Assert.assertEquals(result, "Hello, world!");
     }
+
+    @Test
+    public void testT() throws Exception {
+        //RedisCommandsManager.getAll("");
+    }
+
 
 }

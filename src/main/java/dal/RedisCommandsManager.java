@@ -2,12 +2,12 @@ package dal;
 
 import common.PropertyKeys;
 import common.PropertyLoader;
-import org.springframework.context.annotation.ComponentScan;
-import org.springframework.context.annotation.Configuration;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
 import redis.clients.jedis.exceptions.JedisConnectionException;
+
+import java.util.Map;
 
 /**
  * User: denys.kovalenko
@@ -28,9 +28,21 @@ public class RedisCommandsManager {
     }
 
     public static void set(String key, String value) throws Exception {
-        Jedis jedis = jedisPool.getResource();    // todo: to understand do I need to do this per each command? or with a batch of commands ....
+        Jedis jedis = jedisPool.getResource();
         try {
             jedis.set(key, value);
+        } catch (JedisConnectionException e) {
+            returnBrokenResource(jedis);
+            throw new Exception("Redis connection refused");
+        } finally {
+            returnResource(jedis);
+        }
+    }
+
+    public static void hSet(String key, String field, String value) throws Exception {
+        Jedis jedis = jedisPool.getResource();
+        try {
+            jedis.hset(key, field, value);
         } catch (JedisConnectionException e) {
             returnBrokenResource(jedis);
             throw new Exception("Redis connection refused");
@@ -55,6 +67,18 @@ public class RedisCommandsManager {
         Jedis jedis = jedisPool.getResource();
         try {
             return jedis.eval(script);
+        } catch (JedisConnectionException e) {
+            returnBrokenResource(jedis);
+            throw new Exception("Redis connection refused");
+        } finally {
+            returnResource(jedis);
+        }
+    }
+
+    public static Long incr(String key) throws Exception {
+        Jedis jedis = jedisPool.getResource();
+        try {
+            return jedis.incr(key);
         } catch (JedisConnectionException e) {
             returnBrokenResource(jedis);
             throw new Exception("Redis connection refused");
