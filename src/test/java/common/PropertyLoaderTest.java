@@ -1,22 +1,23 @@
 package common;
 
-import org.testng.Assert;
-import org.testng.annotations.Test;
+import org.junit.Test;
+
+import static org.junit.Assert.assertEquals;
 
 /**
  * User: denys.kovalenko
  * Date: 5/23/14
  * Time: 9:21 AM
  */
-@Test
 public class PropertyLoaderTest {
 
 
+    @Test
     public void loadPropertiesTest(){
         String host = PropertyLoader.getProperty(PropertyKeys.HOST);
         String port = PropertyLoader.getProperty(PropertyKeys.PORT);
 
-        Assert.assertEquals(host, "127.0.0.1");
-        Assert.assertEquals(port, "6379");
+        assertEquals(host, "127.0.0.1");
+        assertEquals(port, "6379");
     }
 }
