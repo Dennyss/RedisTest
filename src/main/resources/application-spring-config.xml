@@ -12,4 +12,11 @@
         <constructor-arg ref="jedisConnectionFactory"/>
     </bean>
 
+    <bean id = "redisCommandsManager" class="dal.RedisCommandsManager"/>
+
+    <bean id = "routeSegmentProcessor" class="processing.RouteSegmentProcessor"/>
+
+    <bean id = "polylineEncoder" class="processing.PolylineEncoder"/>
+
+
 </beans>

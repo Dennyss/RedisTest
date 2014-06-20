@@ -7,7 +7,7 @@ import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
 import redis.clients.jedis.exceptions.JedisConnectionException;
 
-import java.util.Map;
+import java.util.List;
 
 /**
  * User: denys.kovalenko
@@ -20,14 +20,8 @@ public class RedisCommandsManager {
     private static String host = PropertyLoader.getProperty(PropertyKeys.HOST);
     private static JedisPool jedisPool = new JedisPool(new JedisPoolConfig(), host);
 
-    private RedisCommandsManager() {
-    }
 
-    public static void closeAllConnections(){
-        jedisPool.destroy();
-    }
-
-    public static void set(String key, String value) throws Exception {
+    public void set(String key, String value) throws Exception {
         Jedis jedis = jedisPool.getResource();
         try {
             jedis.set(key, value);
@@ -39,7 +33,7 @@ public class RedisCommandsManager {
         }
     }
 
-    public static void hSet(String key, String field, String value) throws Exception {
+    public void hSet(String key, String field, String value) throws Exception {
         Jedis jedis = jedisPool.getResource();
         try {
             jedis.hset(key, field, value);
@@ -51,7 +45,7 @@ public class RedisCommandsManager {
         }
     }
 
-    public static String get(String key) throws Exception {
+    public String get(String key) throws Exception {
         Jedis jedis = jedisPool.getResource();
         try {
             return jedis.get(key);
@@ -63,7 +57,7 @@ public class RedisCommandsManager {
         }
     }
 
-    public static Object eval(String script) throws Exception {
+    public Object eval(String script) throws Exception {
         Jedis jedis = jedisPool.getResource();
         try {
             return jedis.eval(script);
@@ -75,7 +69,7 @@ public class RedisCommandsManager {
         }
     }
 
-    public static Long incr(String key) throws Exception {
+    public Long incr(String key) throws Exception {
         Jedis jedis = jedisPool.getResource();
         try {
             return jedis.incr(key);
@@ -87,12 +81,48 @@ public class RedisCommandsManager {
         }
     }
 
+    public void rPush(String key, String value) throws Exception {
+        Jedis jedis = jedisPool.getResource();
+        try {
+            jedis.rpush(key, value);
+        } catch (JedisConnectionException e) {
+            returnBrokenResource(jedis);
+            throw new Exception("Redis connection refused");
+        } finally {
+            returnResource(jedis);
+        }
+    }
 
-    private static void returnBrokenResource(Jedis jedis){
+    public void lPush(String key, String value) throws Exception {
+        Jedis jedis = jedisPool.getResource();
+        try {
+            jedis.lpush(key, value);
+        } catch (JedisConnectionException e) {
+            returnBrokenResource(jedis);
+            throw new Exception("Redis connection refused");
+        } finally {
+            returnResource(jedis);
+        }
+    }
+
+    public List<String> lRange(String key, long start, long end) throws Exception {
+        Jedis jedis = jedisPool.getResource();
+        try {
+            return jedis.lrange(key, start, end);
+        } catch (JedisConnectionException e) {
+            returnBrokenResource(jedis);
+            throw new Exception("Redis connection refused");
+        } finally {
+            returnResource(jedis);
+        }
+    }
+
+
+    private void returnBrokenResource(Jedis jedis){
         jedisPool.returnBrokenResource(jedis);
     }
 
-    private static void returnResource(Jedis jedis){
+    private void returnResource(Jedis jedis){
         jedisPool.returnResource(jedis);
     }
 }

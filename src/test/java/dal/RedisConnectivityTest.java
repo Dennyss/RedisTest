@@ -27,20 +27,23 @@ public class RedisConnectivityTest {
     @Autowired
     private StringRedisTemplate template;
 
+    @Autowired
+    RedisCommandsManager redisCommandsManager;
+
     @Test
    public void testConnection() throws Exception {
        // Just execute get/set simple commands to make sure that connection is ok
        String keyName = "key1";
        String valueName = "Hello World!";
-       RedisCommandsManager.set(keyName, valueName);
+        redisCommandsManager.set(keyName, valueName);
 
-       String actualValue = RedisCommandsManager.get(keyName);
+       String actualValue = redisCommandsManager.get(keyName);
        assertEquals(actualValue, valueName);
    }
 
     @Test
     public void simpleScriptingTest() throws Exception {
-        String result = (String) RedisCommandsManager.eval("local msg = \"Hello, world!\" return msg");
+        String result = (String) redisCommandsManager.eval("local msg = \"Hello, world!\" return msg");
         assertEquals(result, "Hello, world!");
     }
 
@@ -52,11 +55,5 @@ public class RedisConnectivityTest {
         String result = template.execute(script, Collections.<String>emptyList());
         assertEquals(result, "Hello, world!");
     }
-
-    @Test
-    public void testT() throws Exception {
-        //RedisCommandsManager.getAll("");
-    }
-
 
 }

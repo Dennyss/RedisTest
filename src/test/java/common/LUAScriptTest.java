@@ -33,6 +33,9 @@ public class LUAScriptTest {
     @Autowired
     private StringRedisTemplate template;
 
+    @Autowired
+    RedisCommandsManager redisCommandsManager;
+
     @Test
     public void scriptArgsVarsStringsLearningTest() {
         DefaultRedisScript<String> script = new DefaultRedisScript<>();
@@ -61,9 +64,9 @@ public class LUAScriptTest {
 
     @Test
     public void testT() throws Exception {
-        RedisCommandsManager.set("Key1", "10");
-        Long incrResult = RedisCommandsManager.incr("Key1");
-        String getResult = RedisCommandsManager.get("Key1");
+        redisCommandsManager.set("Key1", "10");
+        Long incrResult = redisCommandsManager.incr("Key1");
+        String getResult = redisCommandsManager.get("Key1");
 
         assertEquals(new Long(11), incrResult);
         assertEquals("11", getResult);
@@ -75,7 +78,7 @@ public class LUAScriptTest {
         String field = "Field1";
         String value = "10";
 
-        RedisCommandsManager.hSet(key, field, value);
+        redisCommandsManager.hSet(key, field, value);
 
         DefaultRedisScript<Long> script = new DefaultRedisScript<>();
         script.setLocation(new ClassPathResource("conditionalLogicTest.lua"));
