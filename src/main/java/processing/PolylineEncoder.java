@@ -17,7 +17,7 @@ public class PolylineEncoder {
      */
     public String encodeRoute(List<Point> points){
         if(points.isEmpty()){
-            throw new IllegalArgumentException("The rout should me not empty");
+            throw new IllegalArgumentException("The route should be not empty");
         }
 
         StringBuilder encodedRoute = new StringBuilder(points.size());

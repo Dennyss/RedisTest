@@ -59,7 +59,7 @@ public class PolylaneEncoderTest {
             emptyCase = e;
         }
         assertTrue(emptyCase instanceof IllegalArgumentException);
-        assertEquals("The rout should me not empty", emptyCase.getMessage());
+        assertEquals("The route should be not empty", emptyCase.getMessage());
 
         // Positive usecase
         // Add points to route and encode

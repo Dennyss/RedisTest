@@ -43,9 +43,6 @@ public class RouteSegmentProcessorTest {
         assertEquals(point1, route.get(0));
         assertEquals(point2, route.get(1));
         assertEquals(point3, route.get(2));
-
-        assertEquals("_p~iF~ps|U_ulLnnqC_mqNvxq`@", routeSegmentProcessor.getEncodedRoute(3));
-
     }
 
     @Test
