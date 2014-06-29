@@ -83,7 +83,7 @@ public class RouteSegmentProcessor {
         keys.add(LATITUDE_KEY);
         keys.add(LONGITUDE_KEY);
 
-        return template.execute(script, keys, routeLength);
+        return template.execute(script, keys, String.valueOf(routeLength));
     }
 
 }
