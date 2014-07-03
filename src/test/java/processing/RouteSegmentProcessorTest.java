@@ -18,7 +18,7 @@ import static org.junit.Assert.assertTrue;
  * Created by Denys Kovalenko on 7/2/2014.
  */
 @ContextConfiguration(locations = {"classpath:test-spring-config.xml"})
-@RunWith( SpringJUnit4ClassRunner.class)
+@RunWith(SpringJUnit4ClassRunner.class)
 public class RouteSegmentProcessorTest {
     private static final String VIN = "VIN12345";
 
@@ -31,13 +31,12 @@ public class RouteSegmentProcessorTest {
 
     @Before
     public void cleanDB() throws Exception {
-        redisCommandsManager.delete(DefaultRouteSegmentProcessor.POINTS_KEY + VIN);
-        redisCommandsManager.delete(DefaultRouteSegmentProcessor.LAST_POINT_TIMESTAMP_KEY + VIN);
-        redisCommandsManager.delete(DefaultRouteSegmentProcessor.ENCODED_ROUT_SEGMENT_KEY + VIN);
+        redisCommandsManager.delete("lastPointTimestamp:" + VIN);
+        redisCommandsManager.delete("routeSegments:" + VIN);
     }
 
     @Test
-    public void applyMethodTestWithWrongParams(){
+    public void applyMethodTestWithWrongParams() {
         // First arg is incorrect (null)
         Exception firsAgrIncorrectCase = null;
         try {
@@ -145,12 +144,12 @@ public class RouteSegmentProcessorTest {
     public void encodeRoutePerformanceTest() throws Exception {
         // Create 10000 points
         Point[] points = new Point[100];
-        for(int i = 0; i < points.length; i++){
+        for (int i = 0; i < points.length; i++) {
             points[i] = new Point((-5000 + i) * 2, (-5000 + i) * 2);
         }
 
         long currentMillis = System.currentTimeMillis();
-        for(int i = 0; i < points.length; i++){
+        for (int i = 0; i < points.length; i++) {
             routeSegmentProcessor.applyPoint("VIN12346", points[i], currentMillis);
         }
 
