@@ -1,14 +1,13 @@
-package processing;
+package common;
 
-import dal.RedisCommandsManager;
 import dto.Point;
-import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
@@ -19,29 +18,18 @@ import static org.junit.Assert.assertTrue;
  */
 @ContextConfiguration(locations = {"classpath:test-spring-config.xml"})
 @RunWith( SpringJUnit4ClassRunner.class)
-public class RouteSegmentProcessorTest {
-    private static final String VIN = "VIN12345";
+public class ValidatorTest {
 
     @Autowired
-    DefaultRouteSegmentProcessor routeSegmentProcessor;
+    private Validator validator;
 
-    @Autowired
-    RedisCommandsManager redisCommandsManager;
-
-
-    @Before
-    public void cleanDB() throws Exception {
-        redisCommandsManager.delete(DefaultRouteSegmentProcessor.POINTS_KEY + VIN);
-        redisCommandsManager.delete(DefaultRouteSegmentProcessor.LAST_POINT_TIMESTAMP_KEY + VIN);
-        redisCommandsManager.delete(DefaultRouteSegmentProcessor.ENCODED_ROUT_SEGMENT_KEY + VIN);
-    }
 
     @Test
-    public void applyMethodTestWithWrongParams(){
+    public void validateParametersTest(){
         // First arg is incorrect (null)
         Exception firsAgrIncorrectCase = null;
         try {
-            routeSegmentProcessor.applyPoint(null, new Point(23.4, -588.348), 1341434);
+            validator.validateParameters(null, new Point(23.4, -588.348), 1341434);
         } catch (Exception e) {
             firsAgrIncorrectCase = e;
         }
@@ -51,7 +39,7 @@ public class RouteSegmentProcessorTest {
         // First arg is incorrect (empty)
         Exception firsAgrIncorrectCase2 = null;
         try {
-            routeSegmentProcessor.applyPoint("", new Point(23.4, -588.348), 1341434);
+            validator.validateParameters("", new Point(23.4, -588.348), 1341434);
         } catch (Exception e) {
             firsAgrIncorrectCase2 = e;
         }
@@ -61,7 +49,7 @@ public class RouteSegmentProcessorTest {
         // Second arg is incorrect
         Exception secondAgrIncorrectCase = null;
         try {
-            routeSegmentProcessor.applyPoint("1C4PJMDS3EW135024", null, 234);
+            validator.validateParameters("1C4PJMDS3EW135024", null, 234);
         } catch (Exception e) {
             secondAgrIncorrectCase = e;
         }
@@ -71,7 +59,7 @@ public class RouteSegmentProcessorTest {
         // Third arg is incorrect
         Exception thirdAgrIncorrectCase = null;
         try {
-            routeSegmentProcessor.applyPoint("1C4PJMDS3EW135024", new Point(23.4, -588.348), 0);
+            validator.validateParameters("1C4PJMDS3EW135024", new Point(23.4, -588.348), 0);
         } catch (Exception e) {
             thirdAgrIncorrectCase = e;
         }
@@ -80,7 +68,7 @@ public class RouteSegmentProcessorTest {
 
         Exception thirdAgrIncorrectCase2 = null;
         try {
-            routeSegmentProcessor.applyPoint("1C4PJMDS3EW135024", new Point(23.4, -588.348), -10);
+            validator.validateParameters("1C4PJMDS3EW135024", new Point(23.4, -588.348), -10);
         } catch (Exception e) {
             thirdAgrIncorrectCase2 = e;
         }
@@ -90,7 +78,7 @@ public class RouteSegmentProcessorTest {
         // All arguments are incorrect
         Exception allAgrsIncorrectCase = null;
         try {
-            routeSegmentProcessor.applyPoint(null, null, 0);
+            validator.validateParameters(null, null, 0);
         } catch (Exception e) {
             allAgrsIncorrectCase = e;
         }
@@ -100,7 +88,7 @@ public class RouteSegmentProcessorTest {
         // Different combinations
         Exception diffAgrsIncorrectCase = null;
         try {
-            routeSegmentProcessor.applyPoint("1C4PJMDS3EW135024", null, -1);
+            validator.validateParameters("1C4PJMDS3EW135024", null, -1);
         } catch (Exception e) {
             diffAgrsIncorrectCase = e;
         }
@@ -109,7 +97,7 @@ public class RouteSegmentProcessorTest {
 
         Exception diffAgrsIncorrectCase2 = null;
         try {
-            routeSegmentProcessor.applyPoint("", null, 12);
+            validator.validateParameters("", null, 12);
         } catch (Exception e) {
             diffAgrsIncorrectCase2 = e;
         }
@@ -119,45 +107,31 @@ public class RouteSegmentProcessorTest {
 
 
     @Test
-    public void applyMethodTestWithNormalParams() throws Exception {
-        Point point1 = new Point(38.5, -120.2);
-        Point point2 = new Point(40.7, -120.95);
-        Point point3 = new Point(43.252, -126.453);
-        Point point4 = new Point(44.252, -124.453);
-
-        // Let's start to build new segment
-        long currentMillis = System.currentTimeMillis() + RouteSegmentProcessor.DEFAULT_TIME_DELIMITER + 1000;
-
-        routeSegmentProcessor.applyPoint(VIN, point1, currentMillis);
-        routeSegmentProcessor.applyPoint(VIN, point2, currentMillis + 1000);
-        routeSegmentProcessor.applyPoint(VIN, point3, currentMillis + 2000);
-
-        long stopInterval1 = RouteSegmentProcessor.DEFAULT_TIME_DELIMITER + 1000;
-
-        // Attempt to create new segment
-        routeSegmentProcessor.applyPoint(VIN, point4, currentMillis + 2000 + stopInterval1);
-
-        List<String> segments = routeSegmentProcessor.getEncodedSegments(VIN);
-        assertEquals("_p~iF~ps|U_ulLnnqC_mqNvxq`@", segments.get(0)); // '0' - is always last segment
-    }
-
-    @Test
-    public void encodeRoutePerformanceTest() throws Exception {
-        // Create 10000 points
-        Point[] points = new Point[100];
-        for(int i = 0; i < points.length; i++){
-            points[i] = new Point((-5000 + i) * 2, (-5000 + i) * 2);
+    public void validateRouteTest(){
+        // Negative use case 1 (null check)
+        List<String> coordinates = null;
+        Exception nullCaseCheck = null;
+        try {
+            validator.validateRoute(coordinates);
+        } catch (Exception e) {
+            nullCaseCheck = e;
         }
+        assertTrue(nullCaseCheck instanceof NullPointerException);
+        assertEquals("The route cannot be null", nullCaseCheck.getMessage());
 
-        long currentMillis = System.currentTimeMillis();
-        for(int i = 0; i < points.length; i++){
-            routeSegmentProcessor.applyPoint("VIN12346", points[i], currentMillis);
+        // Negative use case 2 (empty check)
+        coordinates = new ArrayList<>();
+        Exception emptyCaseCheck = null;
+        try {
+            validator.validateRoute(coordinates);
+        } catch (Exception e) {
+            emptyCaseCheck = e;
         }
+        assertTrue(emptyCaseCheck instanceof IllegalArgumentException);
+        assertEquals("The route cannot be empty", emptyCaseCheck.getMessage());
 
-        long processingTime = System.currentTimeMillis() - currentMillis;
-        System.out.println("Total time of processing " + points.length + " points is: " + processingTime + " msec.");
-        System.out.println("Average processing time of one point is: " + (processingTime / points.length) + " msec.");
+        // Positive use case
+        coordinates.add("345.343:-765.54");
+        validator.validateRoute(coordinates);
     }
-
-
 }

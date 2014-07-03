@@ -3,6 +3,7 @@ package processing;
 import dto.Point;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
@@ -23,11 +24,11 @@ public class PolylaneEncoderTest {
     private Point point2 = new Point(40.7, -120.95);
     private Point point3 = new Point(43.252, -126.453);
 
+    @Autowired
+    private PolylineEncoder polylineEncoder;
 
     @Test
     public void encodeSinglePointTest(){
-        PolylineEncoder polylineEncoder = new PolylineEncoder();
-
         // Expected encoded points are taken from the google example
         assertEquals("_p~iF~ps|U", polylineEncoder.encodeSinglePoint(point1));
         assertEquals("aflwFn`faV", polylineEncoder.encodeSinglePoint(point2));
@@ -37,9 +38,8 @@ public class PolylaneEncoderTest {
 
     @Test
     public void encodeRouteTest(){
-        PolylineEncoder polylineEncoder = new PolylineEncoder();
         // Create an empty route
-        List<Point> route = new ArrayList<>();
+        List<String> route = new ArrayList<>();
 
         // Negative usecases
         // Null case
@@ -59,13 +59,31 @@ public class PolylaneEncoderTest {
             emptyCase = e;
         }
         assertTrue(emptyCase instanceof IllegalArgumentException);
-        assertEquals("The route should be not empty", emptyCase.getMessage());
+        assertEquals("The route cannot be empty", emptyCase.getMessage());
 
         // Positive usecase
         // Add points to route and encode
-        route.add(point1);
-        route.add(point2);
-        route.add(point3);
+        route.add(point1.getLatitude() + ":" + point1.getLongitude());
+        route.add(point2.getLatitude() + ":" + point2.getLongitude());
+        route.add(point3.getLatitude() + ":" + point3.getLongitude());
         assertEquals("_p~iF~ps|U_ulLnnqC_mqNvxq`@", polylineEncoder.encodeRoute(route));
+    }
+
+    @Test
+    public void encodeRoutePerformanceTest() throws Exception {
+        // Create 1000 000 points
+        int pointsQuantity = 1000000;
+        List<String> route = new ArrayList<>(pointsQuantity);
+        for(int i = 0; i < pointsQuantity; i++){
+            route.add(String.valueOf((-5000 + i) * 2) + ":" + String.valueOf((-5000 + i) * 2));
+        }
+
+        long currentMillis = System.currentTimeMillis();
+        String result = polylineEncoder.encodeRoute(route);
+        long processingTime = System.currentTimeMillis() - currentMillis;
+
+        System.out.println("Total time of processing " + route.size() + " points is: " + processingTime + " msec.");
+        System.out.println("Average processing time of one point is: " + (processingTime / route.size()) + " msec.");
+        System.out.println("Result: " + result.substring(0, 100));
     }
 }

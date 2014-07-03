@@ -1,6 +1,8 @@
 package processing;
 
+import common.Validator;
 import dto.Point;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.List;
 
@@ -8,28 +10,29 @@ import java.util.List;
  * Created by Denys Kovalenko on 6/20/2014.
  */
 public class PolylineEncoder {
+    @Autowired
+    private Validator validator;
 
 
     /**
      * This method encodes entire route that consist of {@code List} of points.
-     * @param points the rout: {@code List} of points.
+     * @param coordinates {@code List} of points(coordinates in format: 'latitude:longitude').
      * @return - encoded {@code String} route.
      */
-    public String encodeRoute(List<Point> points){
-        if(points.isEmpty()){
-            throw new IllegalArgumentException("The route should be not empty");
-        }
+    public String encodeRoute(List<String> coordinates){
+        validator.validateRoute(coordinates);
 
-        StringBuilder encodedRoute = new StringBuilder(points.size());
+        StringBuilder encodedRoute = new StringBuilder(coordinates.size());
 
         int latitudePrevious = 0;
         int longitudePrevious = 0;
 
-        for(Point point : points){
+        for(String coordinate : coordinates){
+            String[] coordinatesArr = coordinate.split(":");
 
             // Multiply Point coordinates by 1e5
-            int latitudeCurrent = (int) Math.floor(point.getLatitude() * 1e5);
-            int longitudeCurrent = (int) Math.floor(point.getLongitude() * 1e5);
+            int latitudeCurrent = (int) Math.floor(Double.parseDouble(coordinatesArr[0]) * 1e5);
+            int longitudeCurrent = (int) Math.floor(Double.parseDouble(coordinatesArr[1]) * 1e5);
 
             // Calculate the one piece of route, or diff between previous position and current
             int latitudeDiff = latitudeCurrent - latitudePrevious;
@@ -39,39 +42,42 @@ public class PolylineEncoder {
             latitudePrevious = latitudeCurrent;
             longitudePrevious = longitudeCurrent;
 
-            encodedRoute.append(encodeCoordinate(latitudeDiff));
-            encodedRoute.append(encodeCoordinate(longitudeDiff));
+            encodeCoordinate(encodedRoute, latitudeDiff);
+            encodeCoordinate(encodedRoute, longitudeDiff);
         }
 
         return encodedRoute.toString();
     }
+
 
     public String encodeSinglePoint(Point point){
         // Multiply by 1e5
         int latitude = (int) Math.ceil(point.getLatitude() * 1e5);
         int longitude = (int) Math.ceil(point.getLongitude() * 1e5);
 
-        return encodeCoordinate(latitude) + encodeCoordinate(longitude);
+        StringBuilder encodedRoute = new StringBuilder();
+
+        encodeCoordinate(encodedRoute, latitude);
+        encodeCoordinate(encodedRoute, longitude);
+
+        return encodedRoute.toString();
     }
 
 
     // todo: use StringBuilder from invoking method inside this instead of String
-    private String encodeCoordinate(int coordinate) {
+    private void encodeCoordinate(StringBuilder encodedRoute, int coordinate) {
         int sgn_num = coordinate << 1;
         if (coordinate < 0) {
             sgn_num = ~(sgn_num);
         }
 
-        StringBuffer encodeString = new StringBuffer();
         while (sgn_num >= 0x20) {
             int nextValue = (0x20 | (sgn_num & 0x1f)) + 63;
-            encodeString.append((char) (nextValue));
+            encodedRoute.append((char) (nextValue));
             sgn_num >>= 5;
         }
         sgn_num += 63;
-        encodeString.append((char) (sgn_num));
-
-        return encodeString.toString();
+        encodedRoute.append((char) (sgn_num));
     }
 
 }

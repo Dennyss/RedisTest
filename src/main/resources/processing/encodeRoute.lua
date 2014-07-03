@@ -57,7 +57,6 @@ end
 local function bitAND(x, y)
     local c, pow = 0, 1
     while x > 0 and y > 0 do
-        --print("Debug info: x= " .. x .. " y= " .. y)
         if odd(x) and odd(y) then
             c = c + pow
         end

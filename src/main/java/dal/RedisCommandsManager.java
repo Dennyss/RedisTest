@@ -8,6 +8,7 @@ import redis.clients.jedis.JedisPoolConfig;
 import redis.clients.jedis.exceptions.JedisConnectionException;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * User: denys.kovalenko
@@ -109,6 +110,18 @@ public class RedisCommandsManager {
         Jedis jedis = jedisPool.getResource();
         try {
             return jedis.lrange(key, start, end);
+        } catch (JedisConnectionException e) {
+            returnBrokenResource(jedis);
+            throw new Exception("Redis connection refused");
+        } finally {
+            returnResource(jedis);
+        }
+    }
+
+    public void delete(String key) throws Exception {
+        Jedis jedis = jedisPool.getResource();
+        try {
+            jedis.del(key);
         } catch (JedisConnectionException e) {
             returnBrokenResource(jedis);
             throw new Exception("Redis connection refused");

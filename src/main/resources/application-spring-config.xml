@@ -19,11 +19,12 @@
         <constructor-arg ref="jedisConnectionFactory"/>
     </bean>
 
-    <bean id = "redisCommandsManager" class="dal.RedisCommandsManager"/>
+    <bean id="validator" class="common.Validator"/>
 
-    <bean id = "routeSegmentProcessor" class="processing.RouteSegmentProcessor"/>
+    <bean id="redisCommandsManager" class="dal.RedisCommandsManager"/>
 
-    <bean id = "polylineEncoder" class="processing.PolylineEncoder"/>
+    <bean id="routeSegmentProcessor" class="processing.DefaultRouteSegmentProcessor"/>
 
+    <bean id="polylineEncoder" class="processing.PolylineEncoder"/>
 
 </beans>
