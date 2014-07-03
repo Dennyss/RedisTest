@@ -7,7 +7,8 @@
     <context:component-scan base-package="common"/>
 
     <bean id="jedisShardInfo" class="redis.clients.jedis.JedisShardInfo">
-        <constructor-arg value="172.17.34.126"/>
+        <!--<constructor-arg value="172.17.34.126"/>-->
+        <constructor-arg value="localhost"/>
         <constructor-arg value="6379"/>
     </bean>
 

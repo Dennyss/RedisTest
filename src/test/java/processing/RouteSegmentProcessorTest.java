@@ -125,7 +125,7 @@ public class RouteSegmentProcessorTest {
         Point point4 = new Point(44.252, -124.453);
 
         // Let's start to build new segment
-        long currentMillis = System.currentTimeMillis() + RouteSegmentProcessor.DEFAULT_TIME_DELIMITER + 1000;
+        long currentMillis = System.currentTimeMillis();
 
         routeSegmentProcessor.applyPoint(VIN, point1, currentMillis);
         routeSegmentProcessor.applyPoint(VIN, point2, currentMillis + 1000);
@@ -136,8 +136,8 @@ public class RouteSegmentProcessorTest {
         // Attempt to create new segment
         routeSegmentProcessor.applyPoint(VIN, point4, currentMillis + 2000 + stopInterval1);
 
-        List<String> segments = routeSegmentProcessor.getEncodedSegments(VIN);
-        assertEquals("_p~iF~ps|U_ulLnnqC_mqNvxq`@", segments.get(0)); // '0' - is always last segment
+        List<String> segments = routeSegmentProcessor.getEncodedSegments(VIN, 2);
+        assertEquals("_p~iF~ps|U_ulLnnqC_mqNvxq`@", segments.get(1)); // '0' - is always last segment
     }
 
     @Test

@@ -55,8 +55,7 @@ public class DefaultRouteSegmentProcessor implements RouteSegmentProcessor {
     public List<String> getEncodedSegments(String vin, int quantity) throws Exception {
         validator.validateParameters(vin, quantity);
         // Return from DB <quantity> segments by vin, unpack and encode
-        List<String> result = redisCommandsManager.lRange(ROUT_SEGMENTS_KEY + vin, 0, quantity - 1);
-        return null; //unpackAndEncode(redisCommandsManager.lRange(ROUT_SEGMENTS_KEY + vin, 0, quantity - 1));
+        return unpackAndEncode(redisCommandsManager.lRange(ROUT_SEGMENTS_KEY + vin, 0, quantity - 1));
     }
 
 
@@ -68,21 +67,21 @@ public class DefaultRouteSegmentProcessor implements RouteSegmentProcessor {
     }
 
 
-    private List<String> unpackAndEncode(List<byte[]> segments) {
+    private List<String> unpackAndEncode(List<String> segments) {
         List<String> unpackedAndEncoded = new ArrayList(segments.size());
-        for (byte[] segment : segments) {
+        for (String segment : segments) {
             unpackedAndEncoded.add(polylineEncoder.encodeRoute(unpack(segment)));
         }
         return unpackedAndEncoded;
     }
 
 
-    private List<String> unpack(byte[] segment) {
+    private List<String> unpack(String segment) {
         MessagePack messagePack = new MessagePack();
 
         List<String> data = null;
         try {
-            data = messagePack.read(segment, Templates.tList(Templates.TString));
+            data = messagePack.read(segment.getBytes(), Templates.tList(Templates.TString));
         } catch (IOException e) {
             e.printStackTrace();
         }
