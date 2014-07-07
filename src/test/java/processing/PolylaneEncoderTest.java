@@ -69,7 +69,7 @@ public class PolylaneEncoderTest {
         assertEquals("_p~iF~ps|U_ulLnnqC_mqNvxq`@", polylineEncoder.encodeRoute(route));
     }
 
-    @Test
+    //@Test
     public void encodeRoutePerformanceTest() throws Exception {
         // Create 1000 000 points
         int pointsQuantity = 1000000;

@@ -45,10 +45,8 @@ public class DefaultRouteSegmentProcessor implements RouteSegmentProcessor {
         script.setLocation(new ClassPathResource("processing/processSegments.lua"));
         script.setResultType(String.class);
 
-        String result = template.execute(script, Collections.<String>emptyList(), vin, String.valueOf(point.getLatitude()),
+        template.execute(script, Collections.<String>emptyList(), vin, String.valueOf(point.getLatitude()),
                 String.valueOf(point.getLongitude()), String.valueOf(timestamp));
-
-        System.out.println(result);
     }
 
 
@@ -63,41 +61,34 @@ public class DefaultRouteSegmentProcessor implements RouteSegmentProcessor {
     public List<String> getEncodedSegments(String vin) throws Exception {
         validator.validateVin(vin);
 
-        return getEncodedSegments(vin, 1);
+        return getEncodedSegments(vin, 20);
     }
 
 
-    private List<String> unpackAndEncode(List<String> segments) {
+    private List<String> unpackAndEncode(List<byte[]> segments) {
         List<String> unpackedAndEncoded = new ArrayList(segments.size());
-        for (String segment : segments) {
+        for (byte[] segment : segments) {
             unpackedAndEncoded.add(polylineEncoder.encodeRoute(unpack(segment)));
         }
         return unpackedAndEncoded;
     }
 
 
-    private List<String> unpack(String segment) {
+    private List<String> unpack(byte[] segment) {
         MessagePack messagePack = new MessagePack();
 
-        List<String> data = null;
+        List<String> unpackedSegment = null;
         try {
-            data = messagePack.read(segment.getBytes(), Templates.tList(Templates.TString));
+            unpackedSegment = messagePack.read(segment, Templates.tList(Templates.TString));
         } catch (IOException e) {
             e.printStackTrace();
         }
+        // todo: will discuss what to do with timestamps, how to return them better?
+        String startTimestamp = unpackedSegment.get(0);
+        String endTimestamp = unpackedSegment.get(1);
+        unpackedSegment.remove(0);
+        unpackedSegment.remove(0);
 
-        String startTimestamp = null;
-        String endTimestamp = null;
-        List<String> unpacked = new ArrayList(data.size() - 2);
-        for (int i = 0; i < data.size(); i++) {
-            if (i == 0) {
-                startTimestamp = data.get(i);
-            } else if (i == 1) {
-                endTimestamp = data.get(i);
-            } else {
-                unpacked.add(data.get(i));
-            }
-        }
-        return unpacked;
+        return unpackedSegment;
     }
 }

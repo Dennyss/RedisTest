@@ -106,10 +106,10 @@ public class RedisCommandsManager {
         }
     }
 
-    public List<String> lRange(String key, long start, long end) throws Exception {
+    public List<byte[]> lRange(String key, long start, long end) throws Exception {
         Jedis jedis = jedisPool.getResource();
         try {
-            return jedis.lrange(key, start, end);
+            return jedis.lrange(key.getBytes(), start, end);
         } catch (JedisConnectionException e) {
             returnBrokenResource(jedis);
             throw new Exception("Redis connection refused");

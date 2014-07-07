@@ -44,7 +44,7 @@ public class ValidatorTest {
             firsAgrIncorrectCase2 = e;
         }
         assertTrue(firsAgrIncorrectCase2 instanceof IllegalArgumentException);
-        assertEquals("VIN cannot be empty. ", firsAgrIncorrectCase2.getMessage());
+        assertEquals("VIN cannot be empty", firsAgrIncorrectCase2.getMessage());
 
         // Second arg is incorrect
         Exception secondAgrIncorrectCase = null;
@@ -64,7 +64,7 @@ public class ValidatorTest {
             thirdAgrIncorrectCase = e;
         }
         assertTrue(thirdAgrIncorrectCase instanceof IllegalArgumentException);
-        assertEquals("Timestamp cannot be negative or zero. ", thirdAgrIncorrectCase.getMessage());
+        assertEquals("Timestamp cannot be negative or zero", thirdAgrIncorrectCase.getMessage());
 
         Exception thirdAgrIncorrectCase2 = null;
         try {
@@ -73,7 +73,7 @@ public class ValidatorTest {
             thirdAgrIncorrectCase2 = e;
         }
         assertTrue(thirdAgrIncorrectCase2 instanceof IllegalArgumentException);
-        assertEquals("Timestamp cannot be negative or zero. ", thirdAgrIncorrectCase2.getMessage());
+        assertEquals("Timestamp cannot be negative or zero", thirdAgrIncorrectCase2.getMessage());
 
         // All arguments are incorrect
         Exception allAgrsIncorrectCase = null;
@@ -101,8 +101,52 @@ public class ValidatorTest {
         } catch (Exception e) {
             diffAgrsIncorrectCase2 = e;
         }
-        assertTrue(diffAgrsIncorrectCase2 instanceof NullPointerException);
-        assertEquals("Point cannot be null", diffAgrsIncorrectCase2.getMessage());
+        assertTrue(diffAgrsIncorrectCase2 instanceof IllegalArgumentException);
+        assertEquals("VIN cannot be empty", diffAgrsIncorrectCase2.getMessage());
+    }
+
+
+    @Test
+    public void validateParametersSecondMethodTest(){
+        // First arg is incorrect (null)
+        Exception firsAgrIncorrectCase = null;
+        try {
+            validator.validateParameters(null, -1);
+        } catch (Exception e) {
+            firsAgrIncorrectCase = e;
+        }
+        assertTrue(firsAgrIncorrectCase instanceof NullPointerException);
+        assertEquals("VIN cannot be null", firsAgrIncorrectCase.getMessage());
+
+        // First arg is incorrect (empty)
+        Exception firsAgrIncorrectCase2 = null;
+        try {
+            validator.validateParameters("", -1);
+        } catch (Exception e) {
+            firsAgrIncorrectCase2 = e;
+        }
+        assertTrue(firsAgrIncorrectCase2 instanceof IllegalArgumentException);
+        assertEquals("VIN cannot be empty", firsAgrIncorrectCase2.getMessage());
+
+        // Second arg is incorrect (0)
+        Exception firsAgrIncorrectCase3 = null;
+        try {
+            validator.validateParameters("VIN123", 0);
+        } catch (Exception e) {
+            firsAgrIncorrectCase3 = e;
+        }
+        assertTrue(firsAgrIncorrectCase3 instanceof IllegalArgumentException);
+        assertEquals("Quantity must be in range between 1 and 20", firsAgrIncorrectCase3.getMessage());
+
+        // Second arg is incorrect (-1)
+        Exception firsAgrIncorrectCase4 = null;
+        try {
+            validator.validateParameters("VIN123", -1);
+        } catch (Exception e) {
+            firsAgrIncorrectCase4 = e;
+        }
+        assertTrue(firsAgrIncorrectCase4 instanceof IllegalArgumentException);
+        assertEquals("Quantity must be in range between 1 and 20", firsAgrIncorrectCase4.getMessage());
     }
 
 
@@ -133,5 +177,29 @@ public class ValidatorTest {
         // Positive use case
         coordinates.add("345.343:-765.54");
         validator.validateRoute(coordinates);
+    }
+
+
+    @Test
+    public void validateVINTest(){
+        // First arg is incorrect (null)
+        Exception firsAgrIncorrectCase = null;
+        try {
+            validator.validateVin(null);
+        } catch (Exception e) {
+            firsAgrIncorrectCase = e;
+        }
+        assertTrue(firsAgrIncorrectCase instanceof NullPointerException);
+        assertEquals("VIN cannot be null", firsAgrIncorrectCase.getMessage());
+
+        // First arg is incorrect (empty)
+        Exception firsAgrIncorrectCase2 = null;
+        try {
+            validator.validateVin(" ");
+        } catch (Exception e) {
+            firsAgrIncorrectCase2 = e;
+        }
+        assertTrue(firsAgrIncorrectCase2 instanceof IllegalArgumentException);
+        assertEquals("VIN cannot be empty", firsAgrIncorrectCase2.getMessage());
     }
 }

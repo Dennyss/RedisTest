@@ -50,7 +50,7 @@ public class RedisConnectivityTest {
     @Test
     public void scriptFileUsageTest() {
         DefaultRedisScript<String> script = new DefaultRedisScript<>();
-        script.setLocation(new ClassPathResource("helloWorld.lua"));
+        script.setLocation(new ClassPathResource("connectivityTest.lua"));
         script.setResultType(String.class);
         String result = template.execute(script, Collections.<String>emptyList());
         assertEquals(result, "Hello, world!");
