@@ -1,6 +1,7 @@
 package dto;
 
 import org.msgpack.annotation.Message;
+import processing.PolylineEncoder;
 
 import java.util.List;
 
@@ -21,12 +22,6 @@ public class Segment {
         this.startTimestamp = startTimestamp;
         this.endTimestamp = endTimestamp;
         this.segmentPoints = segmentPoints;
-    }
-
-    public Segment(long startTimestamp, long endTimestamp, String encodedSegment) {
-        this.startTimestamp = startTimestamp;
-        this.endTimestamp = endTimestamp;
-        this.encodedSegment = encodedSegment;
     }
 
     public long getStartTimestamp() {
@@ -54,11 +49,9 @@ public class Segment {
     }
 
     public String getEncodedSegment() {
-        return encodedSegment;
-    }
-
-    public void setEncodedSegment(String encodedSegment) {
-        this.encodedSegment = encodedSegment;
+        // I guess that encoding too fast that we can encode segment every time when get invokes.
+        // In this way we will always have updated encoded segment
+        return PolylineEncoder.encodeSegment(segmentPoints);
     }
 
     @Override

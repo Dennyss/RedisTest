@@ -13,6 +13,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 
 /**
  * Created by Denys Kovalenko on 7/2/2014.
@@ -26,7 +27,6 @@ public class RouteSegmentProcessorTest {
     private Point point2 = new Point(40.7, -120.95);
     private Point point3 = new Point(43.252, -126.453);
     private Point point4 = new Point(44.252, -124.453);
-    private Point point5 = new Point(-87.0876, -0.934);
 
     @Autowired
     private DefaultRouteSegmentProcessor routeSegmentProcessor;
@@ -56,65 +56,37 @@ public class RouteSegmentProcessorTest {
     }
 
     @Test
-    public void shouldCreateOneEncodedSegmentWithOnePoint() throws Exception {
-        long someTimeWithinRouteSegment = 100;
-        routeSegmentProcessor.applyPoint(VIN, point1, someTimeWithinRouteSegment);
+    public void shouldCreateOneSegmentWithManyPointsWithinBreakingInterval() throws Exception {
+        long someInitialTimeWithinBreakingInterval = 100;
+        long someTimeWithinBreakingInterval = someInitialTimeWithinBreakingInterval + 20;
 
-        List<Segment> encodedSegments = routeSegmentProcessor.getAllEncodedSegments(VIN);
-        Segment segment = encodedSegments.get(0);  // '0' - is always last segment
-
-        assertEquals(1, encodedSegments.size());
-        assertEquals("_p~iF~ps|U", segment.getEncodedSegment());
-    }
-
-    @Test
-    public void shouldCreateOneSegmentWithManyPoints() throws Exception {
-        long someTimeWithinRouteSegment = 100;
-        long someTime = 20;
-
-        routeSegmentProcessor.applyPoint(VIN, point1, someTimeWithinRouteSegment);
-        routeSegmentProcessor.applyPoint(VIN, point2, someTimeWithinRouteSegment);
-        routeSegmentProcessor.applyPoint(VIN, point3, someTimeWithinRouteSegment + someTime);
+        routeSegmentProcessor.applyPoint(VIN, point1, someInitialTimeWithinBreakingInterval);
+        routeSegmentProcessor.applyPoint(VIN, point2, someTimeWithinBreakingInterval);
 
         List<Segment> segments = routeSegmentProcessor.getAllSegments(VIN);
         Segment segment = segments.get(0);  // '0' - is always last segment
 
         assertEquals(1, segments.size());
-        assertEquals(3, segment.getSegmentPoints().size());
+        assertEquals(2, segment.getSegmentPoints().size());
         assertEquals(point1, segment.getSegmentPoints().get(0));
         assertEquals(point2, segment.getSegmentPoints().get(1));
-        assertEquals(point3, segment.getSegmentPoints().get(2));
-        assertEquals(someTimeWithinRouteSegment, segment.getStartTimestamp());
-        assertEquals(someTimeWithinRouteSegment + someTime, segment.getEndTimestamp());
+        assertEquals(someInitialTimeWithinBreakingInterval, segment.getStartTimestamp());
+        assertEquals(someTimeWithinBreakingInterval, segment.getEndTimestamp());
     }
 
     @Test
-    public void shouldCreateOneEncodedSegmentWithManyPoints() throws Exception {
-        long someTimeWithinRouteSegment = 100;
-        routeSegmentProcessor.applyPoint(VIN, point1, someTimeWithinRouteSegment);
-        routeSegmentProcessor.applyPoint(VIN, point2, someTimeWithinRouteSegment);
-        routeSegmentProcessor.applyPoint(VIN, point3, someTimeWithinRouteSegment);
-
-        List<Segment> encodedSegments = routeSegmentProcessor.getAllEncodedSegments(VIN);
-        Segment segment = encodedSegments.get(0);  // '0' - is always last segment
-
-        assertEquals(1, encodedSegments.size());
-        assertEquals("_p~iF~ps|U_ulLnnqC_mqNvxq`@", segment.getEncodedSegment());
-    }
-
-    @Test
-    public void shouldCreateManySegmentsWithManyPoints() throws Exception {
-        long someTimeWithinRouteSegment = 100;
-        long someTime = 20;
+    public void shouldBrakeSegmentsAfterPredefinedInterval() throws Exception {
+        long someInitialTimeWithinBreakingInterval = 100;
+        long someTimeWithinBreakingInterval = someInitialTimeWithinBreakingInterval + 20;
         // First segment
-        routeSegmentProcessor.applyPoint(VIN, point1, someTimeWithinRouteSegment);
-        routeSegmentProcessor.applyPoint(VIN, point2, someTimeWithinRouteSegment);
-        routeSegmentProcessor.applyPoint(VIN, point3, someTimeWithinRouteSegment + someTime);
+        routeSegmentProcessor.applyPoint(VIN, point1, someInitialTimeWithinBreakingInterval);
+        routeSegmentProcessor.applyPoint(VIN, point2, someTimeWithinBreakingInterval);
 
-        long timeAfterLongPause = someTimeWithinRouteSegment + someTime + RouteSegmentProcessor.DEFAULT_TIME_DELIMITER;
+        long timeBeyondBreakingInterval = RouteSegmentProcessor.DEFAULT_TIME_DELIMITER + someTimeWithinBreakingInterval;
+        long someTimeBeyondBreakingInterval = timeBeyondBreakingInterval + 20;
         // Last segment
-        routeSegmentProcessor.applyPoint(VIN, point4, timeAfterLongPause);
-        routeSegmentProcessor.applyPoint(VIN, point5, timeAfterLongPause + someTime);
+        routeSegmentProcessor.applyPoint(VIN, point3, timeBeyondBreakingInterval);
+        routeSegmentProcessor.applyPoint(VIN, point4, someTimeBeyondBreakingInterval);
 
         List<Segment> segments = routeSegmentProcessor.getAllSegments(VIN);
 
@@ -122,41 +94,17 @@ public class RouteSegmentProcessorTest {
         Segment lastSegment = segments.get(0);
         Segment firstSegment = segments.get(1);
         // First segment
-        assertEquals(3, firstSegment.getSegmentPoints().size());
+        assertEquals(2, firstSegment.getSegmentPoints().size());
         assertEquals(point1, firstSegment.getSegmentPoints().get(0));
         assertEquals(point2, firstSegment.getSegmentPoints().get(1));
-        assertEquals(point3, firstSegment.getSegmentPoints().get(2));
-        assertEquals(someTimeWithinRouteSegment, firstSegment.getStartTimestamp());
-        assertEquals(someTimeWithinRouteSegment + someTime, firstSegment.getEndTimestamp());
+        assertEquals(someInitialTimeWithinBreakingInterval, firstSegment.getStartTimestamp());
+        assertEquals(someTimeWithinBreakingInterval, firstSegment.getEndTimestamp());
         // Last segment
         assertEquals(2, lastSegment.getSegmentPoints().size());
-        assertEquals(point4, lastSegment.getSegmentPoints().get(0));
-        assertEquals(point5, lastSegment.getSegmentPoints().get(1));
-        assertEquals(timeAfterLongPause, lastSegment.getStartTimestamp());
-        assertEquals(timeAfterLongPause + someTime, lastSegment.getEndTimestamp());
-    }
-
-    @Test
-    public void shouldCreateManyEncodedSegmentsWithManyPoints() throws Exception {
-        long someTimeWithinRouteSegment = 100;
-        long someTime = 20;
-        // First segment
-        routeSegmentProcessor.applyPoint(VIN, point1, someTimeWithinRouteSegment);
-        routeSegmentProcessor.applyPoint(VIN, point2, someTimeWithinRouteSegment);
-        routeSegmentProcessor.applyPoint(VIN, point3, someTimeWithinRouteSegment + someTime);
-
-        long timeAfterLongPause = someTimeWithinRouteSegment + someTime + RouteSegmentProcessor.DEFAULT_TIME_DELIMITER;
-        // Last segment
-        routeSegmentProcessor.applyPoint(VIN, point4, timeAfterLongPause);
-        routeSegmentProcessor.applyPoint(VIN, point5, timeAfterLongPause + someTime);
-
-        List<Segment> encodedSegments = routeSegmentProcessor.getAllEncodedSegments(VIN);
-        assertEquals(2, encodedSegments.size());
-        Segment lastSegment = encodedSegments.get(0);
-        Segment firstSegment = encodedSegments.get(1);
-
-        assertEquals("_p~iF~ps|U_ulLnnqC_mqNvxq`@", firstSegment.getEncodedSegment());
-        assertEquals("_~amGffrvVngs`Xwx{pV", lastSegment.getEncodedSegment());
+        assertEquals(point3, lastSegment.getSegmentPoints().get(0));
+        assertEquals(point4, lastSegment.getSegmentPoints().get(1));
+        assertEquals(timeBeyondBreakingInterval, lastSegment.getStartTimestamp());
+        assertEquals(someTimeBeyondBreakingInterval, lastSegment.getEndTimestamp());
     }
 
     @Test
@@ -181,6 +129,9 @@ public class RouteSegmentProcessorTest {
         // Assert that all 20 segments contain last added points (Point2)
         for(Segment segment : segments) {
             assertEquals(point2, segment.getSegmentPoints().get(0));
+            // Assert that any segment from 20 doesn't contain first point (point1).
+            // So, point1 was shifted
+            assertFalse(segment.getSegmentPoints().contains(point1));
         }
     }
 
@@ -199,11 +150,6 @@ public class RouteSegmentProcessorTest {
         routeSegmentProcessor.getSegments(null, 1);
     }
 
-    @Test(expected = IllegalArgumentException.class)
-    public void getEncodedSegmentsMethodWithNullVinInputTest() {
-        routeSegmentProcessor.getEncodedSegments(null, 1);
-    }
-
     //@Test
     public void performanceTest() throws Exception {
         // Create 100 points
@@ -216,8 +162,6 @@ public class RouteSegmentProcessorTest {
         for (int i = 0; i < points.length; i++) {
             routeSegmentProcessor.applyPoint(VIN, points[i], currentMillis);
         }
-
-        routeSegmentProcessor.getAllEncodedSegments(VIN);
 
         long processingTime = System.currentTimeMillis() - currentMillis;
         System.out.println("Total time of processing " + points.length + " points is: " + processingTime + " millis.");

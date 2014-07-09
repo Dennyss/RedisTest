@@ -36,18 +36,4 @@ public interface RouteSegmentProcessor {
      */
     public List<Segment> getAllSegments(String vin);
 
-    /**
-     * This method returns <quantity/> encoded route segments for particular VIN.
-     * @param vin - VIN for by which encoded route segments will be fetched.
-     * @param quantity
-     * @return List of String (encoded route segments).
-     */
-    public List<Segment> getEncodedSegments(String vin, int quantity);
-
-    /**
-     * This method returns all encoded route segments for particular VIN.
-     * @param vin - VIN for by which encoded route segments will be fetched.
-     * @return List of String (encoded route segments).
-     */
-    public List<Segment> getAllEncodedSegments(String vin);
 }

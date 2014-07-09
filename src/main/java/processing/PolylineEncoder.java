@@ -1,15 +1,19 @@
 package processing;
 
 import dto.Point;
+import org.msgpack.annotation.Message;
 import org.springframework.util.Assert;
 
 import java.util.List;
 
 /**
+ * Utility class with static methods.
  * Created by Denys Kovalenko on 6/20/2014.
  */
+@Message
 public class PolylineEncoder {
 
+    public PolylineEncoder(){}
 
     /**
      * This method encodes entire route that consist of {@code List} of points.
@@ -17,7 +21,7 @@ public class PolylineEncoder {
      * @param points {@code List} of Points.
      * @return - encoded {@code String} route.
      */
-    public String encodeSegment(List<Point> points) {
+    public static String encodeSegment(List<Point> points) {
         Assert.notNull(points, "Points should not be null");
 
         StringBuilder encodedRoute = new StringBuilder();
@@ -45,23 +49,7 @@ public class PolylineEncoder {
     }
 
 
-    public String encodeSinglePoint(Point point) {
-        Assert.notNull(point, "Point should not be null");
-
-        // Multiply by 1e5
-        int latitude = (int) Math.ceil(point.getLatitude() * 1e5);
-        int longitude = (int) Math.ceil(point.getLongitude() * 1e5);
-
-        StringBuilder encodedRoute = new StringBuilder();
-
-        encodeCoordinate(encodedRoute, latitude);
-        encodeCoordinate(encodedRoute, longitude);
-
-        return encodedRoute.toString();
-    }
-
-
-    private void encodeCoordinate(StringBuilder encodedRoute, int coordinate) {
+    private static void encodeCoordinate(StringBuilder encodedRoute, int coordinate) {
         int sgn_num = coordinate << 1;
         if (coordinate < 0) {
             sgn_num = ~(sgn_num);

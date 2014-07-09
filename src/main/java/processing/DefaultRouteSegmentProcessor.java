@@ -1,16 +1,15 @@
 package processing;
 
+import dto.InputMessage;
 import dto.Point;
 import dto.Segment;
 import org.msgpack.MessagePack;
-import org.msgpack.annotation.Message;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
 import org.springframework.data.redis.connection.RedisConnection;
 import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
-import org.springframework.data.redis.serializer.RedisSerializer;
 import org.springframework.data.redis.serializer.SerializationException;
 import org.springframework.util.Assert;
 
@@ -31,8 +30,6 @@ public class DefaultRouteSegmentProcessor implements RouteSegmentProcessor {
     private StringRedisTemplate template;
     @Autowired
     private DefaultRedisScript script;
-    @Autowired
-    private PolylineEncoder polylineEncoder;
 
 
     @Override
@@ -41,7 +38,7 @@ public class DefaultRouteSegmentProcessor implements RouteSegmentProcessor {
         Assert.notNull(point, "Point should not be null");
 
         InputMessage inputMessage = new InputMessage(vin, point, timestamp);
-        template.execute(script, new ArgumentsSerializer(), null, Collections.<String>emptyList(), inputMessage);
+        template.execute(script, Collections.<String>emptyList(), inputMessage);
     }
 
 
@@ -64,18 +61,6 @@ public class DefaultRouteSegmentProcessor implements RouteSegmentProcessor {
     }
 
 
-    @Override
-    public List<Segment> getEncodedSegments(String vin, int quantity) {
-        return encodeAll(getSegments(vin, quantity));
-    }
-
-
-    @Override
-    public List<Segment> getAllEncodedSegments(String vin) {
-        return getEncodedSegments(vin, 0);
-    }
-
-
     public String getRouteSegmentsKey(String vin) {
         return ROUT_SEGMENTS_KEY_PREFIX + vin;
     }
@@ -83,14 +68,6 @@ public class DefaultRouteSegmentProcessor implements RouteSegmentProcessor {
 
     public String getLastPointTimestampKey(String vin) {
         return LAST_POINT_TIMESTAMP_KEY_PREFIX + vin;
-    }
-
-
-    private List<Segment> encodeAll(List<Segment> segments) {
-        for (Segment segment : segments) {
-            segment.setEncodedSegment(polylineEncoder.encodeSegment(segment.getSegmentPoints()));
-        }
-        return segments;
     }
 
 
@@ -108,55 +85,6 @@ public class DefaultRouteSegmentProcessor implements RouteSegmentProcessor {
             return messagePack.read(packedSegment, Segment.class);
         } catch (IOException e) {
             throw new SerializationException("Unable to deserialize", e);
-        }
-    }
-
-
-    private class ArgumentsSerializer implements RedisSerializer<InputMessage> {
-        private MessagePack messagePack = new MessagePack();
-
-        @Override
-        public byte[] serialize(InputMessage inputMessage) throws SerializationException {
-            try {
-                return messagePack.write(inputMessage);
-            } catch (IOException e) {
-                throw new SerializationException("Unable to serialize", e);
-            }
-        }
-
-        @Override
-        public InputMessage deserialize(byte[] bytes) throws SerializationException {
-            return null;
-        }
-    }
-
-
-    @Message
-    public static class InputMessage {
-        private String vin;
-        private Point point;
-        private long timestamp;
-
-        public InputMessage() {
-        }
-
-        public InputMessage(String vin, Point point, long timestamp) {
-            this.vin = vin;
-            this.point = point;
-            this.timestamp = timestamp;
-        }
-
-
-        public String getVin() {
-            return vin;
-        }
-
-        public Point getPoint() {
-            return point;
-        }
-
-        public long getTimestamp() {
-            return timestamp;
         }
     }
 
