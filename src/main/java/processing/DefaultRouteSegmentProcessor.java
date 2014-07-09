@@ -1,14 +1,18 @@
 package processing;
 
-import common.Validator;
-import dal.RedisCommandsManager;
 import dto.Point;
+import dto.Segment;
 import org.msgpack.MessagePack;
-import org.msgpack.template.Templates;
+import org.msgpack.annotation.Message;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.io.ClassPathResource;
+import org.springframework.dao.DataAccessException;
+import org.springframework.data.redis.connection.RedisConnection;
+import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
+import org.springframework.data.redis.serializer.RedisSerializer;
+import org.springframework.data.redis.serializer.SerializationException;
+import org.springframework.util.Assert;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -19,76 +23,141 @@ import java.util.List;
  * Created by Denys Kovalenko on 7/2/2014.
  */
 public class DefaultRouteSegmentProcessor implements RouteSegmentProcessor {
-    // We will save only last point timestamp for vin. We don't need to know point coordinates.
-    public static final String ROUT_SEGMENTS_KEY = "routeSegments:";
+    private static final String ROUT_SEGMENTS_KEY_PREFIX = "routeSegments:";
+    private static final String LAST_POINT_TIMESTAMP_KEY_PREFIX = "lastPointTimestamp:";
+    private MessagePack messagePack = new MessagePack();
 
-    @Autowired
-    private RedisCommandsManager redisCommandsManager;
-    @Autowired
-    private PolylineEncoder polylineEncoder;
-    @Autowired
-    private Validator validator;
     @Autowired
     private StringRedisTemplate template;
+    @Autowired
+    private DefaultRedisScript script;
+    @Autowired
+    private PolylineEncoder polylineEncoder;
 
 
-    public void applyPoint(String vin, double latitude, double longitude, long timestamp) throws Exception {
-        applyPoint(vin, new Point(latitude, longitude), timestamp);
+    @Override
+    public void applyPoint(String vin, Point point, long timestamp) {
+        Assert.notNull(vin, "VIN should not be null");
+        Assert.notNull(point, "Point should not be null");
+
+        InputMessage inputMessage = new InputMessage(vin, point, timestamp);
+        template.execute(script, new ArgumentsSerializer(), null, Collections.<String>emptyList(), inputMessage);
     }
 
 
     @Override
-    public void applyPoint(String vin, Point point, long timestamp) throws Exception {
-        validator.validateParameters(vin, point, timestamp);
+    public List<Segment> getSegments(final String vin, final int quantity) {
+        Assert.notNull(vin, "VIN should not be null");
 
-        DefaultRedisScript<String> script = new DefaultRedisScript<>();
-        script.setLocation(new ClassPathResource("processing/processSegments.lua"));
-        script.setResultType(String.class);
-
-        template.execute(script, Collections.<String>emptyList(), vin, String.valueOf(point.getLatitude()),
-                String.valueOf(point.getLongitude()), String.valueOf(timestamp));
-    }
-
-
-    public List<String> getEncodedSegments(String vin, int quantity) throws Exception {
-        validator.validateParameters(vin, quantity);
-        // Return from DB <quantity> segments by vin, unpack and encode
-        return unpackAndEncode(redisCommandsManager.lRange(ROUT_SEGMENTS_KEY + vin, 0, quantity - 1));
+        return template.execute(new RedisCallback<List<Segment>>() {
+            @Override
+            public List<Segment> doInRedis(RedisConnection connection) throws DataAccessException {
+                return unpackAll(connection.lRange(getRouteSegmentsKey(vin).getBytes(), 0, quantity - 1));
+            }
+        });
     }
 
 
     @Override
-    public List<String> getEncodedSegments(String vin) throws Exception {
-        validator.validateVin(vin);
-
-        return getEncodedSegments(vin, 20);
+    public List<Segment> getAllSegments(String vin) {
+        return getSegments(vin, 0);
     }
 
 
-    private List<String> unpackAndEncode(List<byte[]> segments) {
-        List<String> unpackedAndEncoded = new ArrayList(segments.size());
-        for (byte[] segment : segments) {
-            unpackedAndEncoded.add(polylineEncoder.encodeRoute(unpack(segment)));
+    @Override
+    public List<Segment> getEncodedSegments(String vin, int quantity) {
+        return encodeAll(getSegments(vin, quantity));
+    }
+
+
+    @Override
+    public List<Segment> getAllEncodedSegments(String vin) {
+        return getEncodedSegments(vin, 0);
+    }
+
+
+    public String getRouteSegmentsKey(String vin) {
+        return ROUT_SEGMENTS_KEY_PREFIX + vin;
+    }
+
+
+    public String getLastPointTimestampKey(String vin) {
+        return LAST_POINT_TIMESTAMP_KEY_PREFIX + vin;
+    }
+
+
+    private List<Segment> encodeAll(List<Segment> segments) {
+        for (Segment segment : segments) {
+            segment.setEncodedSegment(polylineEncoder.encodeSegment(segment.getSegmentPoints()));
         }
-        return unpackedAndEncoded;
+        return segments;
     }
 
 
-    private List<String> unpack(byte[] segment) {
-        MessagePack messagePack = new MessagePack();
+    private List<Segment> unpackAll(List<byte[]> packedSegments) {
+        List<Segment> unpackedSegments = new ArrayList(packedSegments.size());
+        for (byte[] packedSegment : packedSegments) {
+            unpackedSegments.add(unpack(packedSegment));
+        }
+        return unpackedSegments;
+    }
 
-        List<String> unpackedSegment = null;
+
+    private Segment unpack(byte[] packedSegment) {
         try {
-            unpackedSegment = messagePack.read(segment, Templates.tList(Templates.TString));
+            return messagePack.read(packedSegment, Segment.class);
         } catch (IOException e) {
-            e.printStackTrace();
+            throw new SerializationException("Unable to deserialize", e);
         }
-        // todo: will discuss what to do with timestamps, how to return them better?
-        String startTimestamp = unpackedSegment.get(0);
-        String endTimestamp = unpackedSegment.get(1);
-        unpackedSegment.remove(0);
-        unpackedSegment.remove(0);
-
-        return unpackedSegment;
     }
+
+
+    private class ArgumentsSerializer implements RedisSerializer<InputMessage> {
+        private MessagePack messagePack = new MessagePack();
+
+        @Override
+        public byte[] serialize(InputMessage inputMessage) throws SerializationException {
+            try {
+                return messagePack.write(inputMessage);
+            } catch (IOException e) {
+                throw new SerializationException("Unable to serialize", e);
+            }
+        }
+
+        @Override
+        public InputMessage deserialize(byte[] bytes) throws SerializationException {
+            return null;
+        }
+    }
+
+
+    @Message
+    public static class InputMessage {
+        private String vin;
+        private Point point;
+        private long timestamp;
+
+        public InputMessage() {
+        }
+
+        public InputMessage(String vin, Point point, long timestamp) {
+            this.vin = vin;
+            this.point = point;
+            this.timestamp = timestamp;
+        }
+
+
+        public String getVin() {
+            return vin;
+        }
+
+        public Point getPoint() {
+            return point;
+        }
+
+        public long getTimestamp() {
+            return timestamp;
+        }
+    }
+
 }

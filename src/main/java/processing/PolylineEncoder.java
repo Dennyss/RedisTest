@@ -1,8 +1,7 @@
 package processing;
 
-import common.Validator;
 import dto.Point;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.Assert;
 
 import java.util.List;
 
@@ -10,29 +9,25 @@ import java.util.List;
  * Created by Denys Kovalenko on 6/20/2014.
  */
 public class PolylineEncoder {
-    @Autowired
-    private Validator validator;
 
 
     /**
      * This method encodes entire route that consist of {@code List} of points.
-     * @param coordinates {@code List} of points(coordinates in format: 'latitude:longitude').
+     *
+     * @param points {@code List} of Points.
      * @return - encoded {@code String} route.
      */
-    public String encodeRoute(List<String> coordinates){
-        validator.validateRoute(coordinates);
+    public String encodeSegment(List<Point> points) {
+        Assert.notNull(points, "Points should not be null");
 
-        StringBuilder encodedRoute = new StringBuilder(coordinates.size());
-
+        StringBuilder encodedRoute = new StringBuilder();
         int latitudePrevious = 0;
         int longitudePrevious = 0;
 
-        for(String coordinate : coordinates){
-            String[] coordinatesArr = coordinate.split(":");
-
+        for (Point point : points) {
             // Multiply Point coordinates by 1e5
-            int latitudeCurrent = (int) Math.floor(Double.parseDouble(coordinatesArr[0]) * 1e5);
-            int longitudeCurrent = (int) Math.floor(Double.parseDouble(coordinatesArr[1]) * 1e5);
+            int latitudeCurrent = (int) Math.floor(point.getLatitude() * 1e5);
+            int longitudeCurrent = (int) Math.floor(point.getLongitude() * 1e5);
 
             // Calculate the one piece of route, or diff between previous position and current
             int latitudeDiff = latitudeCurrent - latitudePrevious;
@@ -50,7 +45,9 @@ public class PolylineEncoder {
     }
 
 
-    public String encodeSinglePoint(Point point){
+    public String encodeSinglePoint(Point point) {
+        Assert.notNull(point, "Point should not be null");
+
         // Multiply by 1e5
         int latitude = (int) Math.ceil(point.getLatitude() * 1e5);
         int longitude = (int) Math.ceil(point.getLongitude() * 1e5);
@@ -64,7 +61,6 @@ public class PolylineEncoder {
     }
 
 
-    // todo: use StringBuilder from invoking method inside this instead of String
     private void encodeCoordinate(StringBuilder encodedRoute, int coordinate) {
         int sgn_num = coordinate << 1;
         if (coordinate < 0) {

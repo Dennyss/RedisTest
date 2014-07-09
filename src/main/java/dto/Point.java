@@ -1,12 +1,17 @@
 package dto;
 
+import org.msgpack.annotation.Message;
+
 /**
  * Created by Denys Kovalenko on 6/20/2014.
  */
+@Message
 public class Point {
     private double latitude;
     private double longitude;
 
+    public Point() {
+    }
 
     public Point(double latitude, double longitude) {
         this.latitude = latitude;
