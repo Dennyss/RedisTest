@@ -29,14 +29,14 @@ end
 local updateExistingSegmentPackMessage = function(point, timestamp, existingSegment)
     if existingSegment == false then
         createNewSegmentPackMessage(point, timestamp);
+    else
+        -- The rout segment is not empty (this is not first point here), update entTimestamp, add new point, return message pack with this point
+        local unpackedExistingSegment = cmsgpack.unpack(existingSegment[#existingSegment]);
+        unpackedExistingSegment[2] = timestamp;   -- update endTimestamp
+        table.insert(unpackedExistingSegment[3], point);
+
+        return cmsgpack.pack(unpackedExistingSegment);
     end
-
-    -- The rout segment is not empty (this is not first point here), update entTimestamp, add new point, return message pack with this point
-    local unpackedExistingSegment = cmsgpack.unpack(existingSegment[#existingSegment]);
-    unpackedExistingSegment[2] = timestamp;   -- update endTimestamp
-    table.insert(unpackedExistingSegment[3], point);
-
-    return cmsgpack.pack(unpackedExistingSegment);
 end
 
 

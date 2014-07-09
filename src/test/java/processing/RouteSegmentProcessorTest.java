@@ -159,6 +159,31 @@ public class RouteSegmentProcessorTest {
         assertEquals("_~amGffrvVngs`Xwx{pV", lastSegment.getEncodedSegment());
     }
 
+    @Test
+    public void shouldKeepOnly20LastSegments() throws Exception {
+        long someTimeWithinRouteSegment = 100;
+        // Create 1st segment with some point
+        routeSegmentProcessor.applyPoint(VIN, point1, someTimeWithinRouteSegment);
+
+        // Create 20 next segments with different point in each segment
+        for(int segmentIndex = 0; segmentIndex < 20; segmentIndex ++) {
+            // Add time after long pause to create new segment each time
+            someTimeWithinRouteSegment += RouteSegmentProcessor.DEFAULT_TIME_DELIMITER;
+
+            routeSegmentProcessor.applyPoint(VIN, point2, someTimeWithinRouteSegment);
+        }
+
+        List<Segment> segments = routeSegmentProcessor.getAllSegments(VIN);
+
+        // Assert that we have only 20 segments
+        assertEquals(20, segments.size());
+
+        // Assert that all 20 segments contain last added points (Point2)
+        for(Segment segment : segments) {
+            assertEquals(point2, segment.getSegmentPoints().get(0));
+        }
+    }
+
     @Test(expected = IllegalArgumentException.class)
     public void applyMethodWithNullVinInputTest() {
         routeSegmentProcessor.applyPoint(null, point1, 1);
