@@ -23,6 +23,16 @@
         </property>
     </bean>
 
+    <bean id="redisTemplate" class="org.springframework.data.redis.core.RedisTemplate">
+        <property name="connectionFactory" ref="jedisConnectionFactory"/>
+        <property name="valueSerializer">
+            <bean class="serializers.OutputMessageSerializer"/>
+        </property>
+        <property name="keySerializer">
+            <bean class="org.springframework.data.redis.serializer.StringRedisSerializer"/>
+        </property>
+    </bean>
+
     <bean id="routeSegmentProcessor" class="processing.DefaultRouteSegmentProcessor"/>
 
     <bean id="script" class="org.springframework.data.redis.core.script.DefaultRedisScript">

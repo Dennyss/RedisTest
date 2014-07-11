@@ -3,18 +3,11 @@ package processing;
 import dto.InputMessage;
 import dto.Point;
 import dto.Segment;
-import org.msgpack.MessagePack;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.DataAccessException;
-import org.springframework.data.redis.connection.RedisConnection;
-import org.springframework.data.redis.core.RedisCallback;
-import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.*;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
-import org.springframework.data.redis.serializer.SerializationException;
 import org.springframework.util.Assert;
 
-import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -24,10 +17,11 @@ import java.util.List;
 public class DefaultRouteSegmentProcessor implements RouteSegmentProcessor {
     private static final String ROUT_SEGMENTS_KEY_PREFIX = "routeSegments:";
     private static final String LAST_POINT_TIMESTAMP_KEY_PREFIX = "lastPointTimestamp:";
-    private MessagePack messagePack = new MessagePack();
 
     @Autowired
-    private StringRedisTemplate template;
+    private StringRedisTemplate templateForInput;
+    @Autowired
+    private RedisTemplate<String, Segment> templateForOutput;
     @Autowired
     private DefaultRedisScript script;
 
@@ -38,7 +32,7 @@ public class DefaultRouteSegmentProcessor implements RouteSegmentProcessor {
         Assert.notNull(point, "Point should not be null");
 
         InputMessage inputMessage = new InputMessage(vin, point, timestamp);
-        template.execute(script, Collections.<String>emptyList(), inputMessage);
+        templateForInput.execute(script, Collections.<String>emptyList(), inputMessage);
     }
 
 
@@ -46,12 +40,7 @@ public class DefaultRouteSegmentProcessor implements RouteSegmentProcessor {
     public List<Segment> getSegments(final String vin, final int quantity) {
         Assert.notNull(vin, "VIN should not be null");
 
-        return template.execute(new RedisCallback<List<Segment>>() {
-            @Override
-            public List<Segment> doInRedis(RedisConnection connection) throws DataAccessException {
-                return unpackAll(connection.lRange(getRouteSegmentsKey(vin).getBytes(), 0, quantity - 1));
-            }
-        });
+        return templateForOutput.opsForList().range(getRouteSegmentsKey(vin), 0, quantity - 1);
     }
 
 
@@ -68,24 +57,6 @@ public class DefaultRouteSegmentProcessor implements RouteSegmentProcessor {
 
     public String getLastPointTimestampKey(String vin) {
         return LAST_POINT_TIMESTAMP_KEY_PREFIX + vin;
-    }
-
-
-    private List<Segment> unpackAll(List<byte[]> packedSegments) {
-        List<Segment> unpackedSegments = new ArrayList(packedSegments.size());
-        for (byte[] packedSegment : packedSegments) {
-            unpackedSegments.add(unpack(packedSegment));
-        }
-        return unpackedSegments;
-    }
-
-
-    private Segment unpack(byte[] packedSegment) {
-        try {
-            return messagePack.read(packedSegment, Segment.class);
-        } catch (IOException e) {
-            throw new SerializationException("Unable to deserialize", e);
-        }
     }
 
 }
