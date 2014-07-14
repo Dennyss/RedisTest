@@ -1,6 +1,7 @@
 package processing;
 
 import common.RedisDao;
+import dto.InputMessage;
 import dto.Point;
 import dto.Segment;
 import org.junit.Before;
@@ -10,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
@@ -135,6 +137,64 @@ public class RouteSegmentProcessorTest {
         }
     }
 
+    @Test
+    public void shouldProceedWithOneInputMessage(){
+        long someTimeWithinRouteSegment = 100;
+
+        List<InputMessage> inputMessages = new ArrayList<>();
+        inputMessages.add(new InputMessage(VIN, point1, someTimeWithinRouteSegment));
+
+        routeSegmentProcessor.applyPoints(inputMessages);
+
+        List<Segment> segments = routeSegmentProcessor.getAllSegments(VIN);
+        Segment segment = segments.get(0);  // '0' - is always last segment
+
+        assertEquals(1, segments.size());
+        assertEquals(1, segment.getSegmentPoints().size());
+        assertEquals(point1, segment.getSegmentPoints().get(0));
+        assertEquals(someTimeWithinRouteSegment, segment.getStartTimestamp());
+        assertEquals(someTimeWithinRouteSegment, segment.getEndTimestamp());
+    }
+
+    @Test
+    public void shouldProceedWithManyInputMessages(){
+        List<InputMessage> inputMessages = new ArrayList<>();
+
+        long someInitialTimeWithinBreakingInterval = 100;
+        long someTimeWithinBreakingInterval = someInitialTimeWithinBreakingInterval + 20;
+
+        // First segment
+        inputMessages.add(new InputMessage(VIN, point1, someInitialTimeWithinBreakingInterval));
+        inputMessages.add(new InputMessage(VIN, point2, someTimeWithinBreakingInterval));
+
+        long timeBeyondBreakingInterval = RouteSegmentProcessor.DEFAULT_TIME_DELIMITER + someTimeWithinBreakingInterval;
+        long someTimeBeyondBreakingInterval = timeBeyondBreakingInterval + 20;
+
+        // Last segment
+        inputMessages.add(new InputMessage(VIN, point3, timeBeyondBreakingInterval));
+        inputMessages.add(new InputMessage(VIN, point4, someTimeBeyondBreakingInterval));
+
+        routeSegmentProcessor.applyPoints(inputMessages);
+
+        List<Segment> segments = routeSegmentProcessor.getAllSegments(VIN);
+
+        assertEquals(2, segments.size());
+        Segment lastSegment = segments.get(0);
+        Segment firstSegment = segments.get(1);
+        // First segment
+        assertEquals(2, firstSegment.getSegmentPoints().size());
+        assertEquals(point1, firstSegment.getSegmentPoints().get(0));
+        assertEquals(point2, firstSegment.getSegmentPoints().get(1));
+        assertEquals(someInitialTimeWithinBreakingInterval, firstSegment.getStartTimestamp());
+        assertEquals(someTimeWithinBreakingInterval, firstSegment.getEndTimestamp());
+        // Last segment
+        assertEquals(2, lastSegment.getSegmentPoints().size());
+        assertEquals(point3, lastSegment.getSegmentPoints().get(0));
+        assertEquals(point4, lastSegment.getSegmentPoints().get(1));
+        assertEquals(timeBeyondBreakingInterval, lastSegment.getStartTimestamp());
+        assertEquals(someTimeBeyondBreakingInterval, lastSegment.getEndTimestamp());
+    }
+
     @Test(expected = IllegalArgumentException.class)
     public void applyMethodWithNullVinInputTest() {
         routeSegmentProcessor.applyPoint(null, point1, 1);
@@ -148,6 +208,16 @@ public class RouteSegmentProcessorTest {
     @Test(expected = IllegalArgumentException.class)
     public void getSegmentsMethodWithNullVinInputTest() {
         routeSegmentProcessor.getSegments(null, 1);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void applyMethodsWithNullInputTest() {
+        routeSegmentProcessor.applyPoints(null);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void applyMethodsWithEmptyInputTest() {
+        routeSegmentProcessor.applyPoints(new ArrayList<InputMessage>());
     }
 
     //@Test

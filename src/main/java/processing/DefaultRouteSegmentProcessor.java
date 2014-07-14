@@ -8,6 +8,7 @@ import org.springframework.data.redis.core.*;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.util.Assert;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -31,8 +32,19 @@ public class DefaultRouteSegmentProcessor implements RouteSegmentProcessor {
         Assert.notNull(vin, "VIN should not be null");
         Assert.notNull(point, "Point should not be null");
 
-        InputMessage inputMessage = new InputMessage(vin, point, timestamp);
-        templateForInput.execute(script, Collections.<String>emptyList(), inputMessage);
+        List<InputMessage> inputMessages = new ArrayList<>(1);
+        inputMessages.add(new InputMessage(vin, point, timestamp));
+
+        applyPoints(inputMessages);
+    }
+
+
+    @Override
+    public void applyPoints(List<InputMessage> listOfMessages){
+        Assert.notNull(listOfMessages, "List of message should not be null");
+        Assert.notEmpty(listOfMessages, "List of message should not be empty");
+
+        templateForInput.execute(script, Collections.<String>emptyList(), listOfMessages);
     }
 
 

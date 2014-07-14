@@ -1,5 +1,6 @@
 package processing;
 
+import dto.InputMessage;
 import dto.Point;
 import dto.Segment;
 
@@ -20,6 +21,13 @@ public interface RouteSegmentProcessor {
      * @param timestamp - actual time information of point.
      */
     public void applyPoint(String vin, Point point, long timestamp);
+
+    /**
+     * This method is input interface that applies batch of messages (VINs with points and timestamps),
+     * builds route segments and save it into the database.
+     * @param listOfMessages - batch of messages
+     */
+    public void applyPoints(List<InputMessage> listOfMessages);
 
     /**
      * Returns <quantity/> built segments
