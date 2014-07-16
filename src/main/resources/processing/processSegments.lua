@@ -8,11 +8,10 @@
 
 local argumentsMessages = cmsgpack.unpack(ARGV[1]);
 
-for i = 1, #argumentsMessages do
-
-    local vin = argumentsMessages[i][1];
-    local point = argumentsMessages[i][2];
-    local timestamp = argumentsMessages[i][3];
+local processSegment = function(argumentsMessage)
+    local vin = argumentsMessage[1];
+    local point = argumentsMessage[2];
+    local timestamp = argumentsMessage[3];
 
     local TIME_DELIMITER = 120000; -- 2 min
     local LAST_POINT_TIMESTAMP_KEY = "lastPointTimestamp:" .. vin;
@@ -67,6 +66,11 @@ for i = 1, #argumentsMessages do
         redis.call("ltrim", ROUT_SEGMENTS_KEY, 0, 19);
     end
 
+end
+
+for i = 1, #argumentsMessages do
+
+    processSegment(argumentsMessages[i]);
 
 -- for end
 end
