@@ -9,8 +9,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static org.junit.Assert.assertNotNull;
 
@@ -47,6 +48,17 @@ public class RouteSegmentProcessorPerformanceTest {
         System.out.println("Average processing time of one point is: " + (processingTime / inputMessages.size()) + " millis.");
     }
 
+    @Test
+    public void performanceTest2() throws Exception {
+        List<InputMessage> inputMessages = createInputMessages(100000);
+
+        long currentMillis = System.currentTimeMillis();
+        routeSegmentProcessor.applyPoints(inputMessages);
+        long processingTime = System.currentTimeMillis() - currentMillis;
+
+        System.out.println("Total time of processing " + inputMessages.size() + " points is: " + processingTime + " millis.");
+        System.out.println("Average processing time of one point is: " + (processingTime / inputMessages.size()) + " millis.");
+    }
 
     private List<InputMessage> createInputMessages() {
         List<InputMessage> inputMessages = new ArrayList<>();
@@ -79,6 +91,19 @@ public class RouteSegmentProcessorPerformanceTest {
         double longitude = Math.random() * 1000000 - 500000;
 
         return new Point(latitude, longitude);
+    }
+
+    private List<InputMessage> createInputMessages( int size ) {
+        Random rnd = new Random();
+        Map<String, Long> vinToTimestamp = new HashMap<>(1000);
+        Point thePoint = new Point(0.2, 0.5);
+
+        return IntStream.iterate(0, i -> i + 1).mapToObj(i -> {
+            String theVIN = String.format("TESTVIN%06d", rnd.nextInt(1000));
+            long rndInterval = rnd.nextInt(10) < 2 ? 10000 : 10;
+            Long nextTimestamp = vinToTimestamp.compute(theVIN, ( key, val ) -> val == null ? 0 : val + rndInterval);
+            return new InputMessage(theVIN, thePoint, nextTimestamp);
+        }).limit(size).collect(Collectors.toList());
     }
 
 }
