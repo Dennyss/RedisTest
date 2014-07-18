@@ -10,8 +10,9 @@ local argumentsMessages = cmsgpack.unpack(ARGV[1]);
 
 local processSegment = function(argumentsMessage)
     local vin = argumentsMessage[1];
-    local point = argumentsMessage[2];
-    local timestamp = argumentsMessage[3];
+    local latitude = argumentsMessage[2];
+    local longitude = argumentsMessage[3];
+    local timestamp = argumentsMessage[4];
 
     local TIME_DELIMITER = 120000; -- 2 min
     local LAST_POINT_TIMESTAMP_KEY = "lastPointTimestamp:" .. vin;
@@ -27,23 +28,23 @@ local processSegment = function(argumentsMessage)
     end
 
 
-    local updateExistingSegmentPackMessage = function(point, timestamp, existingSegment)
+    local updateExistingSegmentPackMessage = function(latitude, longitude, timestamp, existingSegment)
         if existingSegment == false then
-            createNewSegmentPackMessage(point, timestamp);
+            createNewSegmentPackMessage(latitude, longitude, timestamp);
         else
             -- The rout segment is not empty (this is not first point here), update entTimestamp, add new point, return message pack with this point
             local unpackedExistingSegment = cmsgpack.unpack(existingSegment[#existingSegment]);
             unpackedExistingSegment[2] = timestamp; -- update endTimestamp
-            table.insert(unpackedExistingSegment[3], point);
+            table.insert(unpackedExistingSegment[3], {latitude, longitude});
 
             return cmsgpack.pack(unpackedExistingSegment);
         end
     end
 
 
-    local createNewSegmentPackMessage = function(point, timestamp)
+    local createNewSegmentPackMessage = function(latitude, longitude, timestamp)
     -- Create new pack message with new point
-        local newSegment = { timestamp, timestamp, { point } };
+        local newSegment = { timestamp, timestamp, {{latitude, longitude}} };
 
         return cmsgpack.pack(newSegment);
     end
@@ -59,10 +60,10 @@ local processSegment = function(argumentsMessage)
     if isSameSegment(prevTimestamp, timestamp) then
         --  Save segment to DB, change last existing segment (add new point and update last timestamp).
         local existingSegment = redis.call("lrange", ROUT_SEGMENTS_KEY, 0, 0);
-        redis.call("lset", ROUT_SEGMENTS_KEY, 0, updateExistingSegmentPackMessage(point, timestamp, existingSegment));
+        redis.call("lset", ROUT_SEGMENTS_KEY, 0, updateExistingSegmentPackMessage(latitude, longitude, timestamp, existingSegment));
     else
         -- Create new segment and add it to first position of the list
-        redis.call("lpush", ROUT_SEGMENTS_KEY, createNewSegmentPackMessage(point, timestamp));
+        redis.call("lpush", ROUT_SEGMENTS_KEY, createNewSegmentPackMessage(latitude, longitude, timestamp));
         redis.call("ltrim", ROUT_SEGMENTS_KEY, 0, 19);
     end
 

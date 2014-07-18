@@ -4,6 +4,7 @@ import dto.InputMessage;
 import org.msgpack.MessagePack;
 import org.springframework.data.redis.serializer.RedisSerializer;
 import org.springframework.data.redis.serializer.SerializationException;
+import templates.InputMessageTemplate;
 
 import java.io.IOException;
 import java.util.List;
@@ -17,7 +18,7 @@ public class InputMessageSerializer implements RedisSerializer<List<InputMessage
     @Override
     public byte[] serialize(List<InputMessage> inputMessages) throws SerializationException {
         try {
-            return messagePack.write(inputMessages);
+            return messagePack.write(inputMessages, InputMessageTemplate.getInstance());
         } catch (IOException e) {
             throw new SerializationException("Unable to serialize", e);
         }

@@ -1,11 +1,9 @@
 package dto;
 
-import org.msgpack.annotation.Message;
 
 /**
  * Created by Denys Kovalenko on 7/9/2014.
  */
-@Message
 public class InputMessage {
     private String vin;
     private Point point;
