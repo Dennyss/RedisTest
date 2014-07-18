@@ -39,8 +39,8 @@ public class RouteSegmentProcessorTest {
 
     @Before
     public void cleanDB() throws Exception {
-        //redisDao.delete(routeSegmentProcessor.getLastPointTimestampKey(VIN));
-        //redisDao.delete(routeSegmentProcessor.getRouteSegmentsKey(VIN));
+        redisDao.delete(routeSegmentProcessor.getLastPointTimestampKey(VIN));
+        redisDao.delete(routeSegmentProcessor.getRouteSegmentsKey(VIN));
     }
 
     @Test
@@ -220,52 +220,5 @@ public class RouteSegmentProcessorTest {
     public void applyMethodsWithEmptyInputTest() {
         routeSegmentProcessor.applyPoints(new ArrayList<InputMessage>());
     }
-
-    @Test
-    public void performanceTest() throws Exception {
-        // Create 1000 points
-        List<InputMessage> inputMessages = createInputMessages();
-
-        long currentMillis = System.currentTimeMillis();
-        routeSegmentProcessor.applyPoints(inputMessages);
-        List<Segment> segments = routeSegmentProcessor.getAllSegments(createVin());
-        long processingTime = System.currentTimeMillis() - currentMillis;
-
-        assertNotNull(segments);
-
-        System.out.println("Total time of processing " + inputMessages.size() + " points is: " + processingTime + " millis.");
-        System.out.println("Average processing time of one point is: " + (processingTime / inputMessages.size()) + " millis.");
-    }
-
-
-
-    private List<InputMessage> createInputMessages() {
-        List<InputMessage> inputMessages = new ArrayList<>();
-        long timestamp = 0;
-
-        for(int i = 0; i < 100000; i++){
-            Point point = createPoint();
-            String vin = createVin();
-            if(i % 100 == 0){
-                timestamp += RouteSegmentProcessor.DEFAULT_TIME_DELIMITER;
-            }
-            inputMessages.add(new InputMessage(vin, point, timestamp += 20));
-        }
-
-        return inputMessages;
-    }
-
-    private String createVin() {
-        return "VIN123";
-
-    }
-
-    private Point createPoint() {
-        double lattitude = -500000 + Math.random() * 1000000;
-        double longitude = -500000 + Math.random() * 1000000;
-
-        return new Point(lattitude, longitude);
-    }
-
 
 }
