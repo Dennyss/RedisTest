@@ -16,6 +16,7 @@ import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 
 /**
  * Created by Denys Kovalenko on 7/2/2014.
@@ -38,8 +39,8 @@ public class RouteSegmentProcessorTest {
 
     @Before
     public void cleanDB() throws Exception {
-        redisDao.delete(routeSegmentProcessor.getLastPointTimestampKey(VIN));
-        redisDao.delete(routeSegmentProcessor.getRouteSegmentsKey(VIN));
+        //redisDao.delete(routeSegmentProcessor.getLastPointTimestampKey(VIN));
+        //redisDao.delete(routeSegmentProcessor.getRouteSegmentsKey(VIN));
     }
 
     @Test
@@ -220,22 +221,51 @@ public class RouteSegmentProcessorTest {
         routeSegmentProcessor.applyPoints(new ArrayList<InputMessage>());
     }
 
-    //@Test
+    @Test
     public void performanceTest() throws Exception {
-        // Create 100 points
-        Point[] points = new Point[100];
-        for (int i = 0; i < points.length; i++) {
-            points[i] = new Point((-5000 + i) * 2, (-5000 + i) * 2);
-        }
+        // Create 1000 points
+        List<InputMessage> inputMessages = createInputMessages();
 
         long currentMillis = System.currentTimeMillis();
-        for (int i = 0; i < points.length; i++) {
-            routeSegmentProcessor.applyPoint(VIN, points[i], currentMillis);
+        routeSegmentProcessor.applyPoints(inputMessages);
+        List<Segment> segments = routeSegmentProcessor.getAllSegments(createVin());
+        long processingTime = System.currentTimeMillis() - currentMillis;
+
+        assertNotNull(segments);
+
+        System.out.println("Total time of processing " + inputMessages.size() + " points is: " + processingTime + " millis.");
+        System.out.println("Average processing time of one point is: " + (processingTime / inputMessages.size()) + " millis.");
+    }
+
+
+
+    private List<InputMessage> createInputMessages() {
+        List<InputMessage> inputMessages = new ArrayList<>();
+        long timestamp = 0;
+
+        for(int i = 0; i < 100000; i++){
+            Point point = createPoint();
+            String vin = createVin();
+            if(i % 100 == 0){
+                timestamp += RouteSegmentProcessor.DEFAULT_TIME_DELIMITER;
+            }
+            inputMessages.add(new InputMessage(vin, point, timestamp += 20));
         }
 
-        long processingTime = System.currentTimeMillis() - currentMillis;
-        System.out.println("Total time of processing " + points.length + " points is: " + processingTime + " millis.");
-        System.out.println("Average processing time of one point is: " + (processingTime / points.length) + " millis.");
+        return inputMessages;
     }
+
+    private String createVin() {
+        return "VIN123";
+
+    }
+
+    private Point createPoint() {
+        double lattitude = -500000 + Math.random() * 1000000;
+        double longitude = -500000 + Math.random() * 1000000;
+
+        return new Point(lattitude, longitude);
+    }
+
 
 }
