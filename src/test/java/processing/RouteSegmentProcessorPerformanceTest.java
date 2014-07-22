@@ -21,7 +21,7 @@ import static org.junit.Assert.assertNotNull;
 @ContextConfiguration(locations = {"classpath:test-spring-config.xml"})
 @RunWith(SpringJUnit4ClassRunner.class)
 public class RouteSegmentProcessorPerformanceTest {
-    private static final int VINS_NUMBER = 100;
+    private static final int VINS_NUMBER = 10000;
     private static final int TOTAL_POINTS_NUMBER = 100000;
 
     private String[] vins = createVins();
@@ -48,6 +48,7 @@ public class RouteSegmentProcessorPerformanceTest {
         System.out.println("Average processing time of one point is: " + (processingTime / inputMessages.size()) + " millis.");
     }
 
+    // This test uses Oleg's createInputMessages method.
     @Test
     public void performanceTest2() throws Exception {
         List<InputMessage> inputMessages = createInputMessages(100000);

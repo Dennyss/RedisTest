@@ -59,22 +59,23 @@ public class SegmentTemplate extends AbstractTemplate<Segment> {
         }
 
         unpacker.readArrayBegin();
-        toSegment.setStartTimestamp(unpacker.readLong());
-        toSegment.setEndTimestamp(unpacker.readLong());
+        toSegment.setStartTimestamp(Long.parseLong(unpacker.readString()));
+        toSegment.setEndTimestamp(Long.parseLong(unpacker.readString()));
 
         int size = unpacker.readArrayBegin();
         List<Point> points = new ArrayList<>(size);
         for (int i = 0; i < size; i++) {
-            unpacker.readArrayBegin();
-            double latitude = unpacker.readDouble();
-            double longitude = unpacker.readDouble();
-            points.add(new Point(latitude, longitude));
-            unpacker.readArrayEnd();
+            points.add(coordinateToPoint(unpacker.readString()));
         }
         unpacker.readArrayEnd();
         toSegment.setSegmentPoints(points);
         unpacker.readArrayEnd();
 
         return toSegment;
+    }
+
+    private Point coordinateToPoint(String coordinate) {
+        String[] coordinatesArr = coordinate.split(":");
+        return new Point(Double.parseDouble(coordinatesArr[0]), Double.parseDouble(coordinatesArr[1]));
     }
 }

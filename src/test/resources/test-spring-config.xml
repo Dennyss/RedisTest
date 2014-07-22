@@ -37,13 +37,22 @@
     <bean id="routeSegmentProcessor" class="processing.DefaultRouteSegmentProcessor">
         <property name="templateForInput" ref="templateForInput"/>
         <property name="templateForOutput" ref="templateForOutput"/>
-        <property name="script" ref="script"/>
+        <property name="processSegmentsScript" ref="processSegmentsScript"/>
+        <property name="retrieveSegmentsScript" ref="retrieveSegmentsScript"/>
     </bean>
 
-    <bean id="script" class="org.springframework.data.redis.core.script.DefaultRedisScript">
+    <bean id="processSegmentsScript" class="org.springframework.data.redis.core.script.DefaultRedisScript">
         <property name="location">
             <bean class="org.springframework.core.io.ClassPathResource">
                 <constructor-arg value="processing/processSegments.lua" />
+            </bean>
+        </property>
+    </bean>
+
+    <bean id="retrieveSegmentsScript" class="org.springframework.data.redis.core.script.DefaultRedisScript">
+        <property name="location">
+            <bean class="org.springframework.core.io.ClassPathResource">
+                <constructor-arg value="processing/retrieveSegments.lua" />
             </bean>
         </property>
     </bean>
