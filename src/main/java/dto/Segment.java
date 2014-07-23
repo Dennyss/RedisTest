@@ -1,6 +1,5 @@
 package dto;
 
-import org.msgpack.annotation.Message;
 import org.springframework.util.Assert;
 
 import java.util.List;
@@ -8,7 +7,6 @@ import java.util.List;
 /**
  * Created by Denys Kovalenko on 7/8/2014.
  */
-@Message
 public class Segment {
     private long startTimestamp;
     private long endTimestamp;

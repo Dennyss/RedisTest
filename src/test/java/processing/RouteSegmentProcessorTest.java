@@ -38,8 +38,11 @@ public class RouteSegmentProcessorTest {
 
     @Before
     public void cleanDB() throws Exception {
+        redisDao.delete(routeSegmentProcessor.getPackedRouteSegmentsKey(VIN));
         redisDao.delete(routeSegmentProcessor.getLastPointTimestampKey(VIN));
-        redisDao.delete(routeSegmentProcessor.getRouteSegmentsKey(VIN));
+        redisDao.delete(routeSegmentProcessor.getRouteSegmentStartTimestampKey(VIN));
+        redisDao.delete(routeSegmentProcessor.getRouteSegmentEndTimestampKey(VIN));
+        redisDao.delete(routeSegmentProcessor.getRouteSegmentPointsKey(VIN));
     }
 
     @Test

@@ -4,6 +4,7 @@ import dto.Segment;
 import org.msgpack.MessagePack;
 import org.springframework.data.redis.serializer.RedisSerializer;
 import org.springframework.data.redis.serializer.SerializationException;
+import templates.SegmentTemplate;
 
 import java.io.IOException;
 
@@ -21,7 +22,7 @@ public class OutputMessageSerializer implements RedisSerializer<Segment> {
     @Override
     public Segment deserialize(byte[] bytes) throws SerializationException {
         try {
-            return messagePack.read(bytes, Segment.class);
+            return messagePack.read(bytes, SegmentTemplate.getInstance());
         } catch (IOException e) {
             throw new SerializationException("Unable to deserialize", e);
         }
