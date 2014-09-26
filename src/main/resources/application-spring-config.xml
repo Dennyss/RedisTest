@@ -4,7 +4,7 @@
        xmlns:context="http://www.springframework.org/schema/context"
        xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd">
 
-    <context:component-scan base-package="common"/>
+    <context:component-scan base-package="processing"/>
 
     <bean id="jedisShardInfo" class="redis.clients.jedis.JedisShardInfo">
         <!--<constructor-arg value="172.17.34.126"/>-->
@@ -16,31 +16,8 @@
         <constructor-arg ref="jedisShardInfo"/>
     </bean>
 
-    <bean id="stringRedisTemplate" class="org.springframework.data.redis.core.StringRedisTemplate">
+    <bean id="routeSegmentProcessor" class="processing.DefaultRouteSegmentProcessor">
         <constructor-arg ref="jedisConnectionFactory"/>
-        <property name="valueSerializer">
-            <bean class="serializers.InputMessageSerializer"/>
-        </property>
-    </bean>
-
-    <bean id="redisTemplate" class="org.springframework.data.redis.core.RedisTemplate">
-        <property name="connectionFactory" ref="jedisConnectionFactory"/>
-        <property name="valueSerializer">
-            <bean class="serializers.OutputMessageSerializer"/>
-        </property>
-        <property name="keySerializer">
-            <bean class="org.springframework.data.redis.serializer.StringRedisSerializer"/>
-        </property>
-    </bean>
-
-    <bean id="routeSegmentProcessor" class="processing.DefaultRouteSegmentProcessor"/>
-
-    <bean id="script" class="org.springframework.data.redis.core.script.DefaultRedisScript">
-        <property name="location">
-            <bean class="org.springframework.core.io.ClassPathResource">
-                <constructor-arg value="processing/processSegments.lua"/>
-            </bean>
-        </property>
     </bean>
 
 </beans>

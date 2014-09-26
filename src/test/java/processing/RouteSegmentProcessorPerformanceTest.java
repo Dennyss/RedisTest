@@ -10,8 +10,6 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import java.util.*;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 import static org.junit.Assert.assertNotNull;
 
@@ -21,7 +19,7 @@ import static org.junit.Assert.assertNotNull;
 @ContextConfiguration(locations = {"classpath:test-spring-config.xml"})
 @RunWith(SpringJUnit4ClassRunner.class)
 public class RouteSegmentProcessorPerformanceTest {
-    private static final int VINS_NUMBER = 100;
+    private static final int VINS_NUMBER = 10000;
     private static final int TOTAL_POINTS_NUMBER = 100000;
 
     private String[] vins = createVins();
@@ -38,22 +36,10 @@ public class RouteSegmentProcessorPerformanceTest {
 
         // Read segments for each vin
         for (String vin : vins) {
-            List<Segment> segments = routeSegmentProcessor.getAllSegments(vin);
+            List<Segment> segments = routeSegmentProcessor.getSegments(vin);
             assertNotNull(segments);
         }
 
-        long processingTime = System.currentTimeMillis() - currentMillis;
-
-        System.out.println("Total time of processing " + inputMessages.size() + " points is: " + processingTime + " millis.");
-        System.out.println("Average processing time of one point is: " + (processingTime / inputMessages.size()) + " millis.");
-    }
-
-    @Test
-    public void performanceTest2() throws Exception {
-        List<InputMessage> inputMessages = createInputMessages(100000);
-
-        long currentMillis = System.currentTimeMillis();
-        routeSegmentProcessor.applyPoints(inputMessages);
         long processingTime = System.currentTimeMillis() - currentMillis;
 
         System.out.println("Total time of processing " + inputMessages.size() + " points is: " + processingTime + " millis.");
@@ -68,7 +54,7 @@ public class RouteSegmentProcessorPerformanceTest {
             for (int i = 0; i < TOTAL_POINTS_NUMBER / VINS_NUMBER; i++) {
                 Point point = createRandomPoint();
                 if (i % 100 == 0) {
-                    timestamp += RouteSegmentProcessor.DEFAULT_TIME_DELIMITER;
+                    timestamp += DefaultRouteSegmentProcessor.DEFAULT_TIME_DELIMITER;
                 }
                 inputMessages.add(new InputMessage(vin, point, timestamp += 20));
             }
@@ -91,19 +77,6 @@ public class RouteSegmentProcessorPerformanceTest {
         double longitude = Math.random() * 1000000 - 500000;
 
         return new Point(latitude, longitude);
-    }
-
-    private List<InputMessage> createInputMessages( int size ) {
-        Random rnd = new Random();
-        Map<String, Long> vinToTimestamp = new HashMap<>(1000);
-        Point thePoint = new Point(0.2, 0.5);
-
-        return IntStream.iterate(0, i -> i + 1).mapToObj(i -> {
-            String theVIN = String.format("TESTVIN%06d", rnd.nextInt(1000));
-            long rndInterval = rnd.nextInt(10) < 2 ? 10000 : 10;
-            Long nextTimestamp = vinToTimestamp.compute(theVIN, ( key, val ) -> val == null ? 0 : val + rndInterval);
-            return new InputMessage(theVIN, thePoint, nextTimestamp);
-        }).limit(size).collect(Collectors.toList());
     }
 
 }

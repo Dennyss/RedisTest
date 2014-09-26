@@ -38,8 +38,11 @@ public class RouteSegmentProcessorTest {
 
     @Before
     public void cleanDB() throws Exception {
+        redisDao.delete(routeSegmentProcessor.getPackedSegmentsKey(VIN));
         redisDao.delete(routeSegmentProcessor.getLastPointTimestampKey(VIN));
-        redisDao.delete(routeSegmentProcessor.getRouteSegmentsKey(VIN));
+        redisDao.delete(routeSegmentProcessor.getSegmentTimestampsKey(VIN));
+        redisDao.delete(routeSegmentProcessor.getSegmentPointsLatitudeKey(VIN));
+        redisDao.delete(routeSegmentProcessor.getSegmentPointsLongitudeKey(VIN));
     }
 
     @Test
@@ -47,7 +50,7 @@ public class RouteSegmentProcessorTest {
         long someTimeWithinRouteSegment = 100;
         routeSegmentProcessor.applyPoint(VIN, point1, someTimeWithinRouteSegment);
 
-        List<Segment> segments = routeSegmentProcessor.getAllSegments(VIN);
+        List<Segment> segments = routeSegmentProcessor.getSegments(VIN);
         Segment segment = segments.get(0);  // '0' - is always last segment
 
         assertEquals(1, segments.size());
@@ -65,7 +68,7 @@ public class RouteSegmentProcessorTest {
         routeSegmentProcessor.applyPoint(VIN, point1, someInitialTimeWithinBreakingInterval);
         routeSegmentProcessor.applyPoint(VIN, point2, someTimeWithinBreakingInterval);
 
-        List<Segment> segments = routeSegmentProcessor.getAllSegments(VIN);
+        List<Segment> segments = routeSegmentProcessor.getSegments(VIN);
         Segment segment = segments.get(0);  // '0' - is always last segment
 
         assertEquals(1, segments.size());
@@ -90,7 +93,7 @@ public class RouteSegmentProcessorTest {
         routeSegmentProcessor.applyPoint(VIN, point3, timeBeyondBreakingInterval);
         routeSegmentProcessor.applyPoint(VIN, point4, someTimeBeyondBreakingInterval);
 
-        List<Segment> segments = routeSegmentProcessor.getAllSegments(VIN);
+        List<Segment> segments = routeSegmentProcessor.getSegments(VIN);
 
         assertEquals(2, segments.size());
         Segment lastSegment = segments.get(0);
@@ -123,7 +126,7 @@ public class RouteSegmentProcessorTest {
             routeSegmentProcessor.applyPoint(VIN, point2, someTimeWithinRouteSegment);
         }
 
-        List<Segment> segments = routeSegmentProcessor.getAllSegments(VIN);
+        List<Segment> segments = routeSegmentProcessor.getSegments(VIN);
 
         // Assert that we have only 20 segments
         assertEquals(20, segments.size());
@@ -146,7 +149,7 @@ public class RouteSegmentProcessorTest {
 
         routeSegmentProcessor.applyPoints(inputMessages);
 
-        List<Segment> segments = routeSegmentProcessor.getAllSegments(VIN);
+        List<Segment> segments = routeSegmentProcessor.getSegments(VIN);
         Segment segment = segments.get(0);  // '0' - is always last segment
 
         assertEquals(1, segments.size());
@@ -176,7 +179,7 @@ public class RouteSegmentProcessorTest {
 
         routeSegmentProcessor.applyPoints(inputMessages);
 
-        List<Segment> segments = routeSegmentProcessor.getAllSegments(VIN);
+        List<Segment> segments = routeSegmentProcessor.getSegments(VIN);
 
         assertEquals(2, segments.size());
         Segment lastSegment = segments.get(0);
@@ -207,7 +210,7 @@ public class RouteSegmentProcessorTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void getSegmentsMethodWithNullVinInputTest() {
-        routeSegmentProcessor.getSegments(null, 1);
+        routeSegmentProcessor.getSegments(null);
     }
 
     @Test(expected = IllegalArgumentException.class)

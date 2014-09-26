@@ -32,16 +32,8 @@ public interface RouteSegmentProcessor {
     /**
      * Returns <quantity/> built segments
      * @param vin
-     * @param quantity
      * @return  List of Segment
      */
-    public List<Segment> getSegments(String vin, int quantity);
-
-    /**
-     * Returns all built segments
-     * @param vin
-     * @return
-     */
-    public List<Segment> getAllSegments(String vin);
+    public List<Segment> getSegments(String vin);
 
 }

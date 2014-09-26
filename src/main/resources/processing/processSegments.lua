@@ -10,14 +10,22 @@ local argumentsMessages = cmsgpack.unpack(ARGV[1]);
 
 local processSegment = function(argumentsMessage)
     local vin = argumentsMessage[1];
-    local point = argumentsMessage[2];
-    local timestamp = argumentsMessage[3];
+    local latitude = argumentsMessage[2];
+    local longitude = argumentsMessage[3];
+    local timestamp = argumentsMessage[4];
 
     local TIME_DELIMITER = 120000; -- 2 min
-    local LAST_POINT_TIMESTAMP_KEY = "lastPointTimestamp:" .. vin;
-    local ROUT_SEGMENTS_KEY = "routeSegments:" .. vin;
 
-    -- Function definitions
+    -- Packed route segment data structure:
+    local PACKED_SEGMENTS = "packedSegments:" .. vin;
+    -- Unpacked route segment data structure:
+    local LAST_POINT_TIMESTAMP = "lastPointTimestamp:" .. vin;
+    local SEGMENT_TIMESTAMPS = "segmentTimestamps:" .. vin;
+    local START_TIMESTAMP = "start";
+    local END_TIMESTAMP = "end";
+    local SEGMENT_POINTS_LAT = "segmentPointsLat:" .. vin;
+    local SEGMENT_POINTS_LON = "segmentPointsLon:" .. vin;
+
     local isSameSegment = function(prevTimestamp, timestamp)
         if prevTimestamp == false then
             return false;
@@ -26,51 +34,64 @@ local processSegment = function(argumentsMessage)
         return (timestamp - prevTimestamp) < TIME_DELIMITER;
     end
 
+    local updateExistingSegment = function()
+    -- Add new point to existing segment.
+        redis.call("rpush", SEGMENT_POINTS_LAT, latitude); -- RPUSH O(1)
+        redis.call("rpush", SEGMENT_POINTS_LON, longitude); -- RPUSH O(1)
+        redis.call("hmset", SEGMENT_TIMESTAMPS, END_TIMESTAMP, timestamp); -- HMSET O(N)
+    end
 
-    local updateExistingSegmentPackMessage = function(point, timestamp, existingSegment)
-        if existingSegment == false then
-            createNewSegmentPackMessage(point, timestamp);
-        else
-            -- The rout segment is not empty (this is not first point here), update entTimestamp, add new point, return message pack with this point
-            local unpackedExistingSegment = cmsgpack.unpack(existingSegment[#existingSegment]);
-            unpackedExistingSegment[2] = timestamp; -- update endTimestamp
-            table.insert(unpackedExistingSegment[3], point);
+    local createNewSegment = function()
+    -- Set start and end timestamps for current segment
+        redis.call("hmset", SEGMENT_TIMESTAMPS, START_TIMESTAMP, timestamp); -- HMSET O(N)
+        redis.call("hmset", SEGMENT_TIMESTAMPS, END_TIMESTAMP, timestamp); -- HMSET O(N)
+        redis.call("rpush", SEGMENT_POINTS_LAT, latitude); -- RPUSH O(1)
+        redis.call("rpush", SEGMENT_POINTS_LON, longitude); -- RPUSH O(1)
+    end
 
-            return cmsgpack.pack(unpackedExistingSegment);
+    local packPreviousSegment = function()
+        local startTimestamp = tonumber(redis.call("hmget", SEGMENT_TIMESTAMPS, START_TIMESTAMP)[1]);
+        local endTimestamp = tonumber(redis.call("hmget", SEGMENT_TIMESTAMPS, END_TIMESTAMP)[1]);
+        local latitudes = redis.call("lrange", SEGMENT_POINTS_LAT, 0, -1); -- LRANGE O(N) in this case
+        local longitudes = redis.call("lrange", SEGMENT_POINTS_LON, 0, -1); -- LRANGE O(N) in this case
+
+        local points = {}
+        for i = 1, #latitudes do
+            points[i] = { tonumber(latitudes[i]), tonumber(longitudes[i])};
         end
+
+        local unpackedSegment = {
+            startTimestamp, endTimestamp, points
+        };
+
+        redis.call("lpush", PACKED_SEGMENTS, cmsgpack.pack(unpackedSegment)); -- LPUSH O(1)
+        redis.call("ltrim", PACKED_SEGMENTS, 0, 19); -- LTRIM O(N)
     end
 
-
-    local createNewSegmentPackMessage = function(point, timestamp)
-    -- Create new pack message with new point
-        local newSegment = { timestamp, timestamp, { point } };
-
-        return cmsgpack.pack(newSegment);
+    local clearDBForNewSegment = function()
+        redis.call("del", SEGMENT_POINTS_LAT); -- DEL O(N) - because of List deleting
+        redis.call("del", SEGMENT_POINTS_LON); -- DEL O(N) - because of List deleting
+        redis.call("del", SEGMENT_TIMESTAMPS); -- DEL O(N)
     end
-
 
     -- Read timestamp of previous point
-    local prevTimestamp = redis.call("get", LAST_POINT_TIMESTAMP_KEY);
+    local prevTimestamp = redis.call("get", LAST_POINT_TIMESTAMP); -- GET O(1)
 
     -- Save current point timestamp for VIN (override previous)
-    redis.call("set", LAST_POINT_TIMESTAMP_KEY, timestamp);
-
+    redis.call("set", LAST_POINT_TIMESTAMP, timestamp); -- SET O(1)
 
     if isSameSegment(prevTimestamp, timestamp) then
-        --  Save segment to DB, change last existing segment (add new point and update last timestamp).
-        local existingSegment = redis.call("lrange", ROUT_SEGMENTS_KEY, 0, 0);
-        redis.call("lset", ROUT_SEGMENTS_KEY, 0, updateExistingSegmentPackMessage(point, timestamp, existingSegment));
+        updateExistingSegment();
     else
-        -- Create new segment and add it to first position of the list
-        redis.call("lpush", ROUT_SEGMENTS_KEY, createNewSegmentPackMessage(point, timestamp));
-        redis.call("ltrim", ROUT_SEGMENTS_KEY, 0, 19);
+        -- If first point for VIN - we don't need to pack anything previous
+        if not prevTimestamp == false then
+            packPreviousSegment();
+            clearDBForNewSegment();
+        end
+        createNewSegment();
     end
-
 end
 
 for i = 1, #argumentsMessages do
-
     processSegment(argumentsMessages[i]);
-
--- for end
 end
